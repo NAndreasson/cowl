@@ -10,6 +10,8 @@
 #include "mozilla/dom/WebKitCSSMatrixBinding.h"
 #include "nsCSSParser.h"
 #include "nsStyleTransformMatrix.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/RuleNodeCacheConditions.h"
 
 namespace mozilla {
 namespace dom {
