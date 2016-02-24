@@ -289,7 +289,7 @@ WEBIDL_FILES = [
     'Keyframe.webidl',
     'KeyframeEffect.webidl',
     'KillSwitch.webidl',
-    'Label.webidl,
+    'Label.webidl',
     'LegacyQueryInterface.webidl',
     'LinkStyle.webidl',
     'ListBoxObject.webidl',
