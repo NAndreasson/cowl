@@ -140,12 +140,12 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
   nsCOMPtr<nsIGlobalObject> nativeGlobal = xpc::NativeGlobal(global.Get());
 
   // Get the underlying window, if it exists
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(nativeGlobal));
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryInterface(nativeGlobal));
 
   // TODO, assert here, what if there is no window?
 
-  nsCOMPtr<nsPIDOMWindow> outer = win->GetOuterWindow();
-  nsCOMPtr<nsPIDOMWindow> outerParent = outer->GetScriptableTop();
+  nsCOMPtr<nsPIDOMWindowOuter> outer = win->GetOuterWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> outerParent = outer->GetScriptableTop();
 
   bool isTopLevelBrowsingContext = outer.get() == outerParent.get();
   if (isTopLevelBrowsingContext) {
