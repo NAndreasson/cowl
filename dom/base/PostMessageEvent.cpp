@@ -22,6 +22,8 @@
 #include "nsIPresShell.h"
 #include "nsIPrincipal.h"
 #include "nsPresContext.h"
+#include "nsQueryObject.h"
+#include "nsIScriptError.h"
 
 namespace mozilla {
 namespace dom {

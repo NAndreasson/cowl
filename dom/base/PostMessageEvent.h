@@ -12,6 +12,8 @@
 #include "mozilla/RefPtr.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
+#include "nsContentUtils.h"
+
 
 class nsGlobalWindow;
 class nsIPrincipal;
