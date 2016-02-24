@@ -578,4 +578,77 @@ bool IsChromeOrXBL(JSContext* cx, JSObject* /* unused */);
 } // namespace dom
 } // namespace mozilla
 
+namespace mozilla {
+namespace dom {
+class Label;
+class COWL;
+} // namespace dom
+} // namespace mozilla
+
+// COWL compartment related
+namespace xpc {
+namespace cowl {
+
+NS_EXPORT_(void)
+EnableCompartmentConfinement(JSCompartment *compartment);
+
+NS_EXPORT_(bool)
+IsCompartmentConfined(JSCompartment *compartment);
+
+#define DECLARE_SET_LABEL(name)                       \
+    NS_EXPORT_(void)                                  \
+    SetCompartment##name(JSCompartment *compartment,  \
+                         mozilla::dom::Label *aLabel);
+
+#define DECLARE_GET_LABEL(name)                       \
+    NS_EXPORT_(already_AddRefed<mozilla::dom::Label>) \
+    GetCompartment##name(JSCompartment *compartment);
+
+// Compartment label
+DECLARE_SET_LABEL(PrivacyLabel);
+DECLARE_GET_LABEL(PrivacyLabel);
+
+DECLARE_SET_LABEL(TrustLabel);
+DECLARE_GET_LABEL(TrustLabel);
+
+DECLARE_SET_LABEL(Privileges);
+DECLARE_GET_LABEL(Privileges);
+
+#undef DECLARE_SET_LABEL
+#undef DECLARE_GET_LABEL
+
+// Can information flow form source to compartment
+NS_EXPORT_(bool)
+GuardRead(JSCompartment *compartment, JSCompartment *source, bool isRead = true);
+
+// Can information flow to compartment from object labeld with privacy and trust
+NS_EXPORT_(bool)
+GuardRead(JSCompartment *compatment,
+          mozilla::dom::Label &privacy, mozilla::dom::Label &trust,
+          mozilla::dom::Label *aPrivs = nullptr,
+          JSContext *cx = nullptr);
+
+// Can information flow from compartment to object labeld with privacy and trust
+NS_EXPORT_(bool)
+GuardWrite(JSCompartment *compartment,
+          mozilla::dom::Label &privacy, mozilla::dom::Label &trust,
+          mozilla::dom::Label *aPrivs = nullptr);
+
+// Can information flow from compartment to dst
+NS_EXPORT_(bool)
+GuardWrite(JSCompartment *compartment, JSCompartment *dst);
+
+// Update HTML5 flags to disallow storage etc...
+NS_EXPORT_(void)
+RefineCompartmentFlags(JSCompartment *compartment);
+
+
+// Update CSP and sandbox flags according to the label of the compartment
+NS_EXPORT_(void)
+RefineCompartmentCSP(JSCompartment *compartment);
+
+} // namespace cowl
+} // namespace xpc
+
+
 #endif

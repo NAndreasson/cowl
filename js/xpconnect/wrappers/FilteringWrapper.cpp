@@ -244,13 +244,20 @@ CrossOriginXrayWrapper::delete_(JSContext* cx, JS::Handle<JSObject*> wrapper,
 #define XOW FilteringWrapper<CrossOriginXrayWrapper, CrossOriginAccessiblePropertiesOnly>
 #define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>
 #define NNXOWC FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>
+#define CCOWL FilteringWrapper<CrossCompartmentSecurityWrapper, ConfinementPolicy>
+#define XCOWL FilteringWrapper<CrossOriginXrayWrapper, ConfinementPolicy>
 
 template<> const XOW XOW::singleton(0);
 template<> const NNXOW NNXOW::singleton(0);
 template<> const NNXOWC NNXOWC::singleton(0);
+template<> const CCOWL CCOWL::singleton(0);
+template<> const XCOWL XCOWL::singleton(0);
 
 template class XOW;
 template class NNXOW;
 template class NNXOWC;
 template class ChromeObjectWrapperBase;
+template class CCOWL;
+template class XCOWL;
+
 } // namespace xpc

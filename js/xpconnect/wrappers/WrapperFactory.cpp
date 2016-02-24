@@ -304,7 +304,9 @@ static void
 DEBUG_CheckUnwrapSafety(HandleObject obj, const js::Wrapper* handler,
                         JSCompartment* origin, JSCompartment* target)
 {
-    if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
+    if (handler == &CCOWL::singleton || handler == &XCOWL::singleton) {
+        // No checks for COWL confinement wrappers in DEBUG
+    } else if (AccessCheck::isChrome(target) || xpc::IsUniversalXPConnectEnabled(target)) {
         // If the caller is chrome (or effectively so), unwrap should always be allowed.
         MOZ_ASSERT(!handler->hasSecurityPolicy());
     } else if (CompartmentPrivate::Get(origin)->forcePermissiveCOWs) {
@@ -418,7 +420,8 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
     bool targetSubsumesOrigin = AccessCheck::subsumesConsideringDomain(target, origin);
     bool sameOrigin = targetSubsumesOrigin && originSubsumesTarget;
     XrayType xrayType = GetXrayType(obj);
-
+    bool originIsConfined = xpc::cowl::IsCompartmentConfined(origin);
+    bool targetIsConfined = xpc::cowl::IsCompartmentConfined(target);
     const Wrapper* wrapper;
 
     //
@@ -461,6 +464,12 @@ WrapperFactory::Rewrap(JSContext* cx, HandleObject existing, HandleObject obj)
         else {
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
         }
+    }
+
+    // If either compartment is confined, use COWL confinment wrappers.
+    // This is only done if neither compartment is chrome.
+    else if (!originIsChrome && !targetIsChrome && (targetIsConfined || originIsConfined)) {
+       wrapper = &XCOWL::singleton;
     }
 
     //

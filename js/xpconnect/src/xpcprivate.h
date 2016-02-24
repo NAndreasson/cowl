@@ -159,6 +159,9 @@
 #include "BackstagePass.h"
 #include "nsAXPCNativeCallContext.h"
 
+#include "mozilla/dom/Label.h"
+#include "mozilla/dom/COWL.h"
+
 #ifdef XP_WIN
 // Nasty MS defines
 #ifdef GetClassInfo
@@ -3665,6 +3668,129 @@ StackScopedClone(JSContext* cx, StackScopedCloneOptions& options, JS::MutableHan
 
 } /* namespace xpc */
 
+namespace xpc {
+namespace cowl {
+
+/* Class used to encapsulate the compartment labels and privileges. */
+class COWLConfig
+{
+public:
+    COWLConfig() : mPrivacyLabel(nullptr)
+                 , mTrustLabel(nullptr)
+                 , mPrivacyClearance(nullptr)
+                 , mTrustClearance(nullptr)
+                 , mPrivileges(nullptr)
+                 , mSetSandboxFlags(false)
+                 , mSandboxFlags(0)
+                 , mCSPIndex(0)
+    {}
+
+    ~COWLConfig() {
+        mPrivacyLabel     = nullptr;
+        mTrustLabel       = nullptr;
+        mPrivacyClearance = nullptr;
+        mTrustClearance   = nullptr;
+        mPrivileges       = nullptr;
+        mSetSandboxFlags  = false;
+        mSandboxFlags     = 0;
+        mCSPIndex         = 0;
+    }
+
+    // Is the compartment confinement enabled.
+    inline bool isEnabled() {
+        return  !!mPrivacyLabel && !!mTrustLabel;
+    }
+
+#define DEFINE_SET_LABEL(name)                                           \
+    inline void Set##name(mozilla::dom::Label *aLabel) {                 \
+        NS_ASSERTION(aLabel, "Set##name called with null label!");       \
+          (m##name) = aLabel;                                            \
+    }
+
+#define DEFINE_GET_LABEL(name)                                           \
+    inline already_AddRefed<mozilla::dom::Label> Get##name() {           \
+        RefPtr<mozilla::dom::Label> l = (m##name);                     \
+        return !l ? nullptr: l.forget();                                 \
+    }
+
+#define DEFINE_SET_CLEARANCE(name)                                       \
+    inline void Set##name(mozilla::dom::Label *aLabel) {                 \
+        NS_ASSERTION(aLabel, "Set##name called with null label!");       \
+        (m##name) = aLabel;                                              \
+    }
+
+    // Compartment label
+    DEFINE_SET_LABEL(PrivacyLabel);
+    DEFINE_GET_LABEL(PrivacyLabel);
+
+    DEFINE_SET_LABEL(TrustLabel);
+    DEFINE_GET_LABEL(TrustLabel);
+
+    // Compartment clearance
+    DEFINE_SET_CLEARANCE(PrivacyClearance);
+    DEFINE_GET_LABEL(PrivacyClearance);
+
+    DEFINE_SET_CLEARANCE(TrustClearance);
+    DEFINE_GET_LABEL(TrustClearance);
+
+
+#undef DEFINE_SET_CLEARANCE
+#undef DEFINE_SET_LABEL
+#undef DEFINE_GET_LABEL
+
+    // Compartment privileges
+
+    inline void SetPrivileges(mozilla::dom::Label *aLabel) {
+        mPrivileges = aLabel;
+    }
+
+    inline already_AddRefed<mozilla::dom::Label> GetPrivileges() {
+        RefPtr<mozilla::dom::Label> l = mPrivileges;
+        return !l ? nullptr: l.forget();
+    }
+
+    inline bool SetSandboxFlags() {
+        return mSetSandboxFlags;
+    }
+
+    inline void SetSandboxFlags(uint32_t flags) {
+        mSetSandboxFlags = true;
+        mSandboxFlags    = flags;
+    }
+    inline void ClearSandboxFlags() {
+        mSetSandboxFlags = false;
+        mSandboxFlags    = 0;
+    }
+    inline uint32_t GetSandboxFlags() {
+        return mSandboxFlags;
+    }
+
+
+private:
+
+    // Compartment labels
+    RefPtr<mozilla::dom::Label> mPrivacyLabel;
+    RefPtr<mozilla::dom::Label> mTrustLabel;
+
+    // Compartment clearance
+    RefPtr<mozilla::dom::Label> mPrivacyClearance;
+    RefPtr<mozilla::dom::Label> mTrustClearance;
+
+    // Compartment privileges
+    RefPtr<mozilla::dom::Label> mPrivileges;
+
+    // Sandbox flags
+    bool     mSetSandboxFlags;
+    uint32_t mSandboxFlags;
+
+public:
+    // CSP policy index
+    uint32_t mCSPIndex;
+};
+
+} //namespace cowl
+} // namespace xpc
+
 
 /***************************************************************************/
 // Inlined utilities.
@@ -3820,6 +3946,9 @@ public:
     void UpdateWeakPointersAfterGC(XPCJSRuntime* runtime);
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
+
+public:
+    cowl::COWLConfig cowlConfig;
 
 private:
     nsCString location;
