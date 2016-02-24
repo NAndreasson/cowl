@@ -122,17 +122,17 @@ PostMessageEvent::Run()
     }
   }
 
-  // // COWL related checks
-  // // TODO move to own method
-  // RefPtr<nsGlobalWindow> sourceWindow = mSource->GetCurrentInnerWindowInternal();
-  // JSCompartment *fromCompartment = js::GetObjectCompartment(sourceWindow->GetWrapperPreserveColor());
-  // JSCompartment *toCompartment = js::GetObjectCompartment(targetWindow->GetWrapperPreserveColor());
-  // // see if can flow to...
-  // bool canFlowTo = xpc::cowl::GuardRead(toCompartment, fromCompartment, false);
-  // if (!canFlowTo) {
-  //   printf("Guard read failed");
-  //   return NS_OK;
-  // }
+  // COWL related checks
+  // TODO move to own method
+  RefPtr<nsGlobalWindow> sourceWindow = mSource->GetCurrentInnerWindowInternal();
+  JSCompartment *fromCompartment = js::GetObjectCompartment(sourceWindow->GetWrapperPreserveColor());
+  JSCompartment *toCompartment = js::GetObjectCompartment(targetWindow->GetWrapperPreserveColor());
+  // see if can flow to...
+  bool canFlowTo = xpc::cowl::GuardRead(toCompartment, fromCompartment, false);
+  if (!canFlowTo) {
+    printf("Guard read failed");
+    return NS_OK;
+  }
 
   ErrorResult rv;
   JS::Rooted<JS::Value> messageData(cx);
