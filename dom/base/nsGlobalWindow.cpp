@@ -10196,6 +10196,13 @@ nsGlobalWindow::GetLocalStorage(ErrorResult& aError)
     return nullptr;
   }
 
+  // do check, if COWL is enabled, then always enforce this check?
+  JSCompartment *compartment = js::GetObjectCompartment(GetWrapperPreserveColor());
+  if (xpc::cowl::IsCompartmentConfined(compartment) && !DOMStorage::CanUseStorage(AsInner())) {
+    aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
+
   if (!mLocalStorage) {
     if (!DOMStorage::CanUseStorage(AsInner())) {
       aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
