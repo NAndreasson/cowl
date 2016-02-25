@@ -34,6 +34,9 @@ enum StructuredCloneTags {
 
   SCTAG_DOM_FUNCTION,
 
+  // This tag is for COWL labeled objects
+  SCTAG_DOM_LABELEDOBJECT,
+
   // This tag is for WebCrypto keys
   SCTAG_DOM_WEBCRYPTO_KEY,
 

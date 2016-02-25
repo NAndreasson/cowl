@@ -51,11 +51,11 @@ public:
 
 
 public: // Internal
-  // bool WriteStructuredClone(JSContext* cx, JSStructuredCloneWriter* writer);
-  // static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
+  bool WriteStructuredClone(JSContext* cx, JSStructuredCloneWriter* writer);
+  static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
 
 private:
-  nsString GetProtectedObject() { return mBlob; };
+  nsString GetBlob() { return mBlob; };
   RefPtr<Label> mConfidentiality;
   RefPtr<Label> mIntegrity;
   nsString  mBlob;

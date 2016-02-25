@@ -18,6 +18,7 @@
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageData.h"
 #include "mozilla/dom/ImageDataBinding.h"
+#include "mozilla/dom/LabeledObject.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/dom/StructuredClone.h"
 #include "mozilla/dom/MessagePort.h"
@@ -386,10 +387,15 @@ StructuredCloneHolder::FreeBuffer(uint64_t* aBuffer,
 /* static */ JSObject*
 StructuredCloneHolder::ReadFullySerializableObjects(JSContext* aCx,
                                                     JSStructuredCloneReader* aReader,
-                                                    uint32_t aTag)
+                                                    uint32_t aTag,
+                                                    uint32_t aIndex)
 {
   if (aTag == SCTAG_DOM_IMAGEDATA) {
     return ReadStructuredCloneImageData(aCx, aReader);
+  }
+
+  if (aTag == SCTAG_DOM_LABELEDOBJECT) {
+   return LabeledObject::ReadStructuredClone(aCx, aReader, aIndex); // 0 should be "data" which is remove for now
   }
 
   if (aTag == SCTAG_DOM_WEBCRYPTO_KEY) {
@@ -502,6 +508,14 @@ StructuredCloneHolder::WriteFullySerializableObjects(JSContext* aCx,
     ImageData* imageData = nullptr;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(ImageData, aObj, imageData))) {
       return WriteStructuredCloneImageData(aCx, aWriter, imageData);
+    }
+  }
+
+  // Handle Labeled Object cloning
+  {
+    LabeledObject* labeledObject;
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(LabeledObject, aObj, labeledObject))) {
+      return labeledObject->WriteStructuredClone(aCx, aWriter);
     }
   }
 
@@ -980,7 +994,7 @@ StructuredCloneHolder::CustomReadHandler(JSContext* aCx,
                                             parent, GetSurfaces(), aIndex);
    }
 
-  return ReadFullySerializableObjects(aCx, aReader, aTag);
+  return ReadFullySerializableObjects(aCx, aReader, aTag, aIndex);
 }
 
 bool

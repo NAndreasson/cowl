@@ -222,6 +222,7 @@ static void Shutdown();
 #include "mozilla/dom/nsContentSecurityManager.h"
 #include "mozilla/dom/nsCSPService.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "nsLabeledObjectService.h"
 #include "nsICellBroadcastService.h"
 #include "nsIIccService.h"
 #include "nsISmsService.h"
@@ -661,6 +662,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(PocketSphinxSpeechRecognitionService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsContentSecurityManager)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsCSPContext)
 NS_GENERIC_FACTORY_CONSTRUCTOR(CSPService)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsLabeledObjectService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsMixedContentBlocker)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsPrincipal)
@@ -809,6 +811,7 @@ NS_DEFINE_NAMED_CID(NS_FOCUSMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_CONTENTSECURITYMANAGER_CID);
 NS_DEFINE_NAMED_CID(CSPSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_CSPCONTEXT_CID);
+NS_DEFINE_NAMED_CID(LABELEDOBJECTSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_MIXEDCONTENTBLOCKER_CID);
 NS_DEFINE_NAMED_CID(NS_EVENTLISTENERSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_GLOBALMESSAGEMANAGER_CID);
@@ -1127,6 +1130,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_CONTENTSECURITYMANAGER_CID, false, nullptr, nsContentSecurityManagerConstructor },
   { &kCSPSERVICE_CID, false, nullptr, CSPServiceConstructor },
   { &kNS_CSPCONTEXT_CID, false, nullptr, nsCSPContextConstructor },
+  { &kLABELEDOBJECTSERVICE_CID , false, nullptr, nsLabeledObjectServiceConstructor },
   { &kNS_MIXEDCONTENTBLOCKER_CID, false, nullptr, nsMixedContentBlockerConstructor },
   { &kNS_EVENTLISTENERSERVICE_CID, false, nullptr, CreateEventListenerService },
   { &kNS_GLOBALMESSAGEMANAGER_CID, false, nullptr, CreateGlobalMessageManager },
@@ -1296,6 +1300,7 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
   { NS_CONTENTSECURITYMANAGER_CONTRACTID, &kNS_CONTENTSECURITYMANAGER_CID },
   { CSPSERVICE_CONTRACTID, &kCSPSERVICE_CID },
   { NS_CSPCONTEXT_CONTRACTID, &kNS_CSPCONTEXT_CID },
+  { LABELEDOBJECTSERVICE_CONTRACTID, &kLABELEDOBJECTSERVICE_CID },
   { NS_MIXEDCONTENTBLOCKER_CONTRACTID, &kNS_MIXEDCONTENTBLOCKER_CID },
   { NS_EVENTLISTENERSERVICE_CONTRACTID, &kNS_EVENTLISTENERSERVICE_CID },
   { NS_GLOBALMESSAGEMANAGER_CONTRACTID, &kNS_GLOBALMESSAGEMANAGER_CID },

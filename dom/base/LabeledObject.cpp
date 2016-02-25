@@ -6,7 +6,9 @@
 
 #include "mozilla/dom/LabeledObject.h"
 #include "mozilla/dom/LabeledObjectBinding.h"
+#include "nsLabeledObjectService.h"
 #include "mozilla/dom/COWL.h"
+#include "StructuredCloneTags.h"
 #include "xpcprivate.h"
 #include "nsContentUtils.h"
 
@@ -120,22 +122,90 @@ LabeledObject::Clone(const CILabel& labels, ErrorResult &aRv) const
 void
 LabeledObject::GetProtectedObject(JSContext* cx, nsString& aRetVal, ErrorResult& aRv) const
 {
+  aRv.MightThrowJSException();
+  JSCompartment *compartment = js::GetContextCompartment(cx);
+  MOZ_ASSERT(compartment);
 
+  if (MOZ_UNLIKELY(!xpc::cowl::IsCompartmentConfined(compartment)))
+    xpc::cowl::EnableCompartmentConfinement(compartment);
+
+  RefPtr<Label> privs = xpc::cowl::GetCompartmentPrivileges(compartment);
+
+  // get compartment confidentiality label
+  // do a mConfidentiality.and(compConf).Downgrade(privs)
+  // set to comparment label to corresponding...
+  // get compartment integrity label
+  //
+
+  // current compartment label must flow to label of target
+  // raise it if need be
+  // TODO: raise label if the following check does not hold
+  if (!xpc::cowl::GuardRead(compartment, *mConfidentiality,*mIntegrity, privs, cx)) {
+    // raise ...
+    // get current conf and integrity...
+    //
+    COWL::JSErrorResult(cx, aRv, "Cannot inspect object...");
+    return;
+  }
+
+  aRetVal = mBlob;
 }
 
-// bool
-// LabeledObject::WriteStructuredClone(JSContext* cx,
-//                                   JSStructuredCloneWriter* writer)
-// {
-// ;
-//   return true;
-// }
+bool
+LabeledObject::WriteStructuredClone(JSContext* cx,
+                                  JSStructuredCloneWriter* writer)
+{
+  nsresult rv;
+  nsCOMPtr<nsILabeledObjectService> ilbs(do_GetService(LABELEDOBJECTSERVICE_CID, &rv));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  nsLabeledObjectService* lbs = static_cast<nsLabeledObjectService*>(ilbs.get());
+  if (!lbs) {
+    return false;
+  }
+  if (JS_WriteUint32Pair(writer, SCTAG_DOM_LABELEDOBJECT,
+                                 lbs->mLabeledObjectList.Length())) {
+    lbs->mLabeledObjectList.AppendElement(this);
+    return true;
+  }
+  return false;
+}
 
-// JSObject*
-// LabeledObject::ReadStructuredClone(JSContext* cx,
-//                                  JSStructuredCloneReader* reader, uint32_t idx)
-// {
-// }
+JSObject*
+LabeledObject::ReadStructuredClone(JSContext* cx,
+                                 JSStructuredCloneReader* reader, uint32_t idx)
+{
+  nsresult rv;
+  nsCOMPtr<nsILabeledObjectService> ilbs(do_GetService(LABELEDOBJECTSERVICE_CID, &rv));
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+  nsLabeledObjectService* lbs = static_cast<nsLabeledObjectService*>(ilbs.get());
+  if (!lbs) {
+    return nullptr;
+  }
+  if(idx >= lbs->mLabeledObjectList.Length()) {
+    return nullptr;
+  }
+  RefPtr<LabeledObject> labeledObject = lbs->mLabeledObjectList[idx];
+  lbs->mLabeledObjectList.RemoveElementAt(idx);
+
+  ErrorResult aRv;
+  //RefPtr<File> Object       = labeledObject->Object();
+  RefPtr<Label> confidentiality   = labeledObject->Confidentiality();
+  RefPtr<Label> integrity     = labeledObject->Integrity();
+
+  confidentiality = confidentiality->Clone(aRv);
+  if (aRv.Failed()) return nullptr;
+  integrity = integrity->Clone(aRv);
+  if (aRv.Failed()) return nullptr;
+
+  RefPtr<LabeledObject> b  =
+    new LabeledObject(labeledObject->GetBlob(), *(confidentiality.get()), *(integrity.get()));
+
+  return b->WrapObject(cx, nullptr); // TODO, acceptable with nullptr here?
+}
 
 } // namespace dom
 } // namespace mozilla
