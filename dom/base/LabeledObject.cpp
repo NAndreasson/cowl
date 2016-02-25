@@ -24,10 +24,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(LabeledObject)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-LabeledObject::LabeledObject(const nsAString& blob, Label& confidentiality, Label& integrity)
+LabeledObject::LabeledObject(JSObject* obj, Label& confidentiality, Label& integrity)
   : mConfidentiality(&confidentiality)
   , mIntegrity(&integrity)
-  , mBlob(blob)
+  , mObj(obj)
 {
 
 }
@@ -35,7 +35,7 @@ LabeledObject::LabeledObject(const nsAString& blob, Label& confidentiality, Labe
 already_AddRefed<LabeledObject>
 LabeledObject::Constructor(const GlobalObject& global,
                          JSContext* cx,
-                         const nsAString& blob,
+                         JS::Handle<JSObject*> obj,
                          const CILabel& labels,
                          ErrorResult& aRv)
 {
@@ -88,7 +88,7 @@ LabeledObject::Constructor(const GlobalObject& global,
 
   // see label and so on which should be contained in CILABELS
   // perform a write check
-  RefPtr<LabeledObject> labeledObject = new LabeledObject(blob, *confidentiality, *integrity);
+  RefPtr<LabeledObject> labeledObject = new LabeledObject(obj, *confidentiality, *integrity);
 
   // RefPtr<Label> privacy = COWL::GetPrivacyLabel(global, cx, aRv);
   // return Constructor(global, cx, blob, *privacy, *trust, aRv);
@@ -114,13 +114,13 @@ LabeledObject::Integrity() const
 already_AddRefed<LabeledObject>
 LabeledObject::Clone(const CILabel& labels, ErrorResult &aRv) const
 {
-  RefPtr<LabeledObject> labeledObject = new LabeledObject(mBlob, *mConfidentiality, *mIntegrity);
+  RefPtr<LabeledObject> labeledObject = new LabeledObject(mObj, *mConfidentiality, *mIntegrity);
 
   return labeledObject.forget();
 }
 
 void
-LabeledObject::GetProtectedObject(JSContext* cx, nsString& aRetVal, ErrorResult& aRv) const
+LabeledObject::GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> retval, ErrorResult& aRv) const
 {
   aRv.MightThrowJSException();
   JSCompartment *compartment = js::GetContextCompartment(cx);
@@ -148,7 +148,7 @@ LabeledObject::GetProtectedObject(JSContext* cx, nsString& aRetVal, ErrorResult&
 
   xpc::cowl::SetCompartmentTrustLabel(compartment, newIntLabel);
 
-  aRetVal = mBlob;
+  retval.set(mObj);
 }
 
 bool
@@ -202,7 +202,7 @@ LabeledObject::ReadStructuredClone(JSContext* cx,
   if (aRv.Failed()) return nullptr;
 
   RefPtr<LabeledObject> b  =
-    new LabeledObject(labeledObject->GetBlob(), *(confidentiality.get()), *(integrity.get()));
+    new LabeledObject(labeledObject->GetObj(), *(confidentiality.get()), *(integrity.get()));
 
   return b->WrapObject(cx, nullptr); // TODO, acceptable with nullptr here?
 }

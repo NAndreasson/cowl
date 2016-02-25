@@ -4,7 +4,7 @@ dictionary CILabel {
 };
 
 // change DomString to object?
-[Constructor(DOMString blob, CILabel labels)]
+[Constructor(object obj, CILabel labels)]
 interface LabeledObject {
 
   // Blob privacy and trust labels
@@ -12,7 +12,7 @@ interface LabeledObject {
   [Pure] readonly attribute Label integrity;
 
   // Underlying labeled value
-  [GetterThrows] readonly attribute DOMString protectedObject;
+  [GetterThrows] readonly attribute object protectedObject;
 
   /*
     TODO: The spec does not state that labels should be optional, but it seems like they must be? In this case it does not matter.

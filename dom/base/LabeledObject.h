@@ -23,7 +23,7 @@ protected:
   ~LabeledObject() { }
 
 public:
-  LabeledObject(const nsAString& blob, Label& confidentiality, Label& integrity);
+  LabeledObject(JSObject* obj, Label& confidentiality, Label& integrity);
 
 
   LabeledObject* GetParentObject() const
@@ -38,14 +38,14 @@ public:
 
   static already_AddRefed<LabeledObject> Constructor(const GlobalObject& global,
                                                    JSContext* cx,
-                                                   const nsAString& blob,
+                                                   JS::Handle<JSObject*> obj,
                                                    const CILabel& labels,
                                                    ErrorResult& aRv);
 
   already_AddRefed<Label> Confidentiality() const;
   already_AddRefed<Label> Integrity() const;
 
-  void GetProtectedObject(JSContext* cx, nsString& aRetVal, ErrorResult& aRv) const;
+  void GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> retval, ErrorResult& aRv) const;
 
   already_AddRefed<LabeledObject> Clone(const CILabel& labels, ErrorResult &aRv) const;
 
@@ -55,10 +55,10 @@ public: // Internal
   static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
 
 private:
-  nsString GetBlob() { return mBlob; };
+  JSObject* GetObj() { return mObj; };
   RefPtr<Label> mConfidentiality;
   RefPtr<Label> mIntegrity;
-  nsString  mBlob;
+  JSObject* mObj;
 };
 
 } // namespace dom
