@@ -131,22 +131,22 @@ LabeledObject::GetProtectedObject(JSContext* cx, nsString& aRetVal, ErrorResult&
 
   RefPtr<Label> privs = xpc::cowl::GetCompartmentPrivileges(compartment);
 
-  // get compartment confidentiality label
-  // do a mConfidentiality.and(compConf).Downgrade(privs)
-  // set to comparment label to corresponding...
-  // get compartment integrity label
-  //
+  // the current confidentiality label in context which called protectedObject
+  RefPtr<Label> compConfidentiality = xpc::cowl::GetCompartmentPrivacyLabel(compartment);
+  RefPtr<Label> tmpConfLabel = compConfidentiality->And(*mConfidentiality, aRv);
+  RefPtr<Label> newConfLabel = tmpConfLabel->Downgrade(*privs);
 
-  // current compartment label must flow to label of target
-  // raise it if need be
-  // TODO: raise label if the following check does not hold
-  if (!xpc::cowl::GuardRead(compartment, *mConfidentiality,*mIntegrity, privs, cx)) {
-    // raise ...
-    // get current conf and integrity...
-    //
-    COWL::JSErrorResult(cx, aRv, "Cannot inspect object...");
-    return;
-  }
+
+  // TODO perform a check for stuck-top level context.
+
+  // set to new conf label
+  xpc::cowl::SetCompartmentPrivacyLabel(compartment, newConfLabel);
+
+  RefPtr<Label> compIntegrity = xpc::cowl::GetCompartmentTrustLabel(compartment);
+  RefPtr<Label> tmpIntLabel = compIntegrity->Or(*mIntegrity, aRv);
+  RefPtr<Label> newIntLabel = tmpIntLabel->Downgrade(*privs);
+
+  xpc::cowl::SetCompartmentTrustLabel(compartment, newIntLabel);
 
   aRetVal = mBlob;
 }
