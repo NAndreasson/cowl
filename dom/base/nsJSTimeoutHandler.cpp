@@ -36,7 +36,7 @@ public:
   nsJSScriptTimeoutHandler();
   // This will call SwapElements on aArguments with an empty array.
   nsJSScriptTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
-                           Function& aFunction,
+                           mozilla::dom::Function& aFunction,
                            FallibleTArray<JS::Heap<JS::Value> >& aArguments,
                            ErrorResult& aError);
   nsJSScriptTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
@@ -44,7 +44,7 @@ public:
                            ErrorResult& aError);
 
   virtual const char16_t* GetHandlerText() override;
-  virtual Function* GetCallback() override
+  virtual mozilla::dom::Function* GetCallback() override
   {
     return mFunction;
   }
@@ -76,7 +76,7 @@ private:
   // The expression to evaluate or function to call. If mFunction is non-null
   // it should be used, else use mExpr.
   nsString mExpr;
-  RefPtr<Function> mFunction;
+  RefPtr<mozilla::dom::Function> mFunction;
 };
 
 
@@ -197,7 +197,7 @@ nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler()
 
 nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(JSContext* aCx,
                                                    nsGlobalWindow *aWindow,
-                                                   Function& aFunction,
+                                                   mozilla::dom::Function& aFunction,
                                                    FallibleTArray<JS::Heap<JS::Value> >& aArguments,
                                                    ErrorResult& aError)
   : mLineNo(0)
@@ -267,7 +267,7 @@ nsJSScriptTimeoutHandler::GetHandlerText()
 
 already_AddRefed<nsIScriptTimeoutHandler>
 NS_CreateJSTimeoutHandler(JSContext *aCx, nsGlobalWindow *aWindow,
-                          Function& aFunction,
+                          mozilla::dom::Function& aFunction,
                           const Sequence<JS::Value>& aArguments,
                           ErrorResult& aError)
 {

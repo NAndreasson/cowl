@@ -16,6 +16,7 @@
 #include "nsLayoutUtils.h"
 #include "nsJSUtils.h"
 #include "nsDeviceContext.h"
+#include "nsContentUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
