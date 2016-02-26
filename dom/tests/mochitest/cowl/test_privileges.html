@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug </title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script class="testbody" type="application/javascript">
+  SimpleTest.waitForExplicitFinish();
+
+  function testFreshPrivilege() {
+    var freshPriv = new FreshPrivilege();
+  }
+
+  function testAsLabel() {
+
+  }
+
+  function testCombine() {
+
+  }
+
+  function testDelegate() {
+    var currentPrivilege = COWL.privilege;
+    var currentPrivilegeLabel = currentPrivilege.asLabel;
+
+    var newLabel = currentPrivilegeLabel.or('app:user1');
+    var newDelegatedPrivilege = currentPrivilege.delegate(newLabel);
+
+    // new delegated privilege is weaker than previous
+    is(currentPrivilege.subsumes(newDelegatedPrivilege), true, "New delegated privilege is weaker");
+
+    is(newDelegatedPrivilege.subsumes(currentPrivilege), false, "New delegated privilege is weaker");
+
+    // an error should be thrown if try to construct a stronger privilege than the current
+
+  }
+
+  function startTest() {
+    COWL.enable();
+
+    testFreshPrivilege();
+    testAsLabel();
+    testCombine();
+    testDelegate();
+
+    SimpleTest.finish();
+  }
+
+  </script>
+</head>
+<body onload="startTest()">
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+</pre>
+</body>
+</html>
