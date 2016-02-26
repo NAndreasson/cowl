@@ -112,9 +112,47 @@ LabeledObject::Integrity() const
 }
 
 already_AddRefed<LabeledObject>
-LabeledObject::Clone(const CILabel& labels, ErrorResult &aRv) const
+LabeledObject::Clone(JSContext* cx, const CILabel& labels, ErrorResult &aRv) const
 {
-  RefPtr<LabeledObject> labeledObject = new LabeledObject(mObj, *mConfidentiality, *mIntegrity);
+  aRv.MightThrowJSException();
+  JSCompartment *compartment = js::GetContextCompartment(cx);
+  MOZ_ASSERT(compartment);
+
+  if (MOZ_UNLIKELY(!xpc::cowl::IsCompartmentConfined(compartment)))
+    xpc::cowl::EnableCompartmentConfinement(compartment);
+
+  RefPtr<Label> privs = xpc::cowl::GetCompartmentPrivileges(compartment);
+
+  RefPtr<Label> newConf;
+  if (labels.mConfidentiality.WasPassed()) {
+    newConf = labels.mConfidentiality.Value();
+  } else {
+    newConf = mConfidentiality;
+  }
+
+  RefPtr<Label> newInt;
+  if (labels.mIntegrity.WasPassed()) {
+    newInt = labels.mIntegrity.Value();
+  } else {
+    newInt = mIntegrity;
+  }
+
+  if (!newConf->Subsumes(*privs, *mConfidentiality)) {
+    // throw security errorr...
+    COWL::JSErrorResult(cx, aRv,
+      "SecurityError: Confidentiality label needs to be more restrictive");
+    return nullptr;
+  }
+
+  if (!mIntegrity->Subsumes(*privs, *newInt)) {
+    COWL::JSErrorResult(cx, aRv,
+      "SecurityError: Check integrity label");
+    return nullptr;
+  }
+
+
+  // TODO, make sure that mObj is actually copied?
+  RefPtr<LabeledObject> labeledObject = new LabeledObject(mObj, *newConf, *newInt);
 
   return labeledObject.forget();
 }

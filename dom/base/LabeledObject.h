@@ -47,7 +47,7 @@ public:
 
   void GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> retval, ErrorResult& aRv) const;
 
-  already_AddRefed<LabeledObject> Clone(const CILabel& labels, ErrorResult &aRv) const;
+  already_AddRefed<LabeledObject> Clone(JSContext* cx, const CILabel& labels, ErrorResult &aRv) const;
 
 
 public: // Internal
