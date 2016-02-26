@@ -1,0 +1,159 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug </title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script class="testbody" type="application/javascript">
+  SimpleTest.waitForExplicitFinish();
+
+  function expectValidPrincipal(principal) {
+   try {
+      new Label(principal);
+      ok(true, "Label did not throw when passed valid Principal");
+    } catch(e) {
+      ok(false, "Label throws when passed a valid principal");
+    }
+  }
+
+  function expectInvalidPrincipal(principal) {
+   try {
+      new Label(principal);
+      ok(false, "Label did not throw when passed invalid principal");
+    } catch(e) {
+      ok(e, "Label throws when passed an invalid principal");
+    }
+  }
+
+  function testPrincipalParsing() {
+    // test principals
+    var validAppPrincipal = 'app:user1';
+    expectValidPrincipal(validAppPrincipal);
+
+    var invalidAppPrincipal = 'app:user1.';
+    expectInvalidPrincipal(invalidAppPrincipal);
+
+    var validUniquePrincipal = 'unique:a0281e1f-8412-4068-a7ed-e3f234d7fd5a';
+    expectValidPrincipal(validUniquePrincipal);
+
+    var invalidUniquePrincipal = 'unique:123213-invalid';
+    expectInvalidPrincipal(invalidUniquePrincipal);
+
+    var validOriginPrincipal = "alice.com";
+    expectValidPrincipal(validOriginPrincipal);
+
+    var validOriginPrincipal2 = "'self'";
+    expectValidPrincipal(validOriginPrincipal2);
+
+    var invalidOriginPrincipal = "http:/a.com";
+    expectInvalidPrincipal(invalidOriginPrincipal);
+  }
+
+  function testEquals() {
+    // test #equals
+    var aLabel1 = new Label('http://a.com/');
+    var aLabel2 = new Label('http://a.com/');
+    var bLabel = new Label('http://b.com/');
+
+    is(aLabel1.equals(aLabel1), true, "A label should be equal to itself");
+    is(aLabel1.equals(aLabel2), true, "A label should be equal to another if it contains the same principals");
+
+    var aAndBLabel1 = (new Label('http://a.com')).and('http://b.com');
+    var aAndBLabel2 = (new Label('http://a.com')).and('http://b.com');
+    is(aAndBLabel1.equals(aAndBLabel2), true, "A label should be equal to another if it contains the same principals");
+
+    var aOrBLabel1 = (new Label('http://a.com')).or('http://b.com');
+    var aOrBLabel2 = (new Label('http://a.com')).or(new Label('http://b.com'));
+    is(aOrBLabel1.equals(aOrBLabel2), true, "A label should equal another if it contains the same principals");
+
+    is(aLabel1.equals(bLabel), false, "Two labels with different principals should not be equal");
+  }
+
+  function testSubsumes() {
+    var aLabel = new Label('http://a.com/');
+    is(aLabel.subsumes(aLabel), true, "A label should subsume itself");
+
+    var bLabel = new Label('http://b.com/');
+    is(aLabel.subsumes(bLabel), false, "A label should not subsume another if they contain different principals");
+
+    var priv1 = new FreshPrivilege();
+    var priv1Label = priv1.asLabel;
+
+    var priv2 = new FreshPrivilege();
+    var priv2Label = priv2.asLabel;
+
+    is(priv1Label.subsumes(priv2Label), false);
+    is(priv1Label.subsumes(priv2Label, priv2), true, "A label subsumes another if given the privilege for it");
+  }
+
+  function testAnd() {
+    var aLabel = new Label('http://a.com/');
+    var bLabel = new Label('http://b.com/');
+
+    var aAndBLabel = aLabel.and(bLabel);
+
+    // check for immutability, original labels should not be altered by #and or #or
+    is(aLabel.equals(new Label('http://a.com/')), true, "Labels should be immutable");
+    is(bLabel.equals(new Label('http://b.com/')), true, "Labels should be immutable");
+
+    is(aAndBLabel.subsumes(aLabel), true, "New label from #and subsumes old ones");
+    is(aAndBLabel.subsumes(bLabel), true, "New label from #and subsumes old ones");
+  }
+
+  function testOr() {
+    var aLabel = new Label('http://a.com/');
+    var bLabel = new Label('http://b.com/');
+
+    var aOrBLabel = aLabel.or(bLabel);
+    // check for immutability, original labels should not be altered by #and or #or
+    is(aLabel.equals(new Label('http://a.com/')), true, "Labels should be immutable");
+    is(bLabel.equals(new Label('http://b.com/')), true, "Labels should be immutable");
+
+
+    is(aOrBLabel.subsumes(aLabel), false);
+    is(aOrBLabel.subsumes(bLabel), false);
+
+    is(aLabel.subsumes(aOrBLabel), true);
+    is(bLabel.subsumes(aOrBLabel), true);
+  }
+
+  function testToString() {
+    var emptyLabel = new Label();
+    is(emptyLabel.toString(), "'none'");
+
+    var aLabel = new Label('https://a.com');
+    is(aLabel.toString(), 'https://a.com/'); // expect normalization to add /
+
+    var bLabel = new Label('https://b.com');
+    var aAndBLabel = aLabel.and(bLabel); // (https://a.com) AND (https://b.com)
+    is(aAndBLabel.toString(), '(https://a.com/) AND (https://b.com/)');
+
+    // TODO, test #toString with "or" or labels
+  }
+
+  function startTest() {
+    testPrincipalParsing();
+    testEquals();
+    testSubsumes();
+    testAnd();
+    testOr();
+    testToString();
+
+    SimpleTest.finish();
+  }
+
+  </script>
+</head>
+<body onload="startTest()">
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+</pre>
+</body>
+</html>

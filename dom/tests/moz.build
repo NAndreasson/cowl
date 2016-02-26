@@ -12,6 +12,7 @@ MOCHITEST_MANIFESTS += [
     'mochitest/ajax/scriptaculous/mochitest.ini',
     'mochitest/beacon/mochitest.ini',
     'mochitest/bugs/mochitest.ini',
+    'mochitest/cowl/mochitest.ini',
     'mochitest/crypto/mochitest.ini',
     'mochitest/dom-level0/mochitest.ini',
     'mochitest/dom-level1-core/mochitest.ini',
