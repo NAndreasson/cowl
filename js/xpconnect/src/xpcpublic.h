@@ -642,11 +642,6 @@ GuardWrite(JSCompartment *compartment, JSCompartment *dst);
 NS_EXPORT_(void)
 RefineCompartmentFlags(JSCompartment *compartment);
 
-
-// Update CSP and sandbox flags according to the label of the compartment
-NS_EXPORT_(void)
-RefineCompartmentCSP(JSCompartment *compartment);
-
 } // namespace cowl
 } // namespace xpc
 
