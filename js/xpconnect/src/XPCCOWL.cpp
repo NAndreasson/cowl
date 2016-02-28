@@ -164,6 +164,44 @@ GetCompartmentPrivileges(JSCompartment*compartment)
   return privs.forget();
 }
 
+NS_EXPORT_(bool)
+LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
+  Label& confidentiality,
+  Label* privs)
+{
+  // Get the compartment global
+  nsCOMPtr<nsIGlobalObject> global =
+    NativeGlobal(JS_GetGlobalForCompartmentOrNull(compartment));
+  MOZ_ASSERT(global);
+
+  // Get the underlying window, if it exists
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryInterface(global));
+  // TODO, assert here, what if there is no window?
+
+  nsCOMPtr<nsPIDOMWindowOuter> outer = win->GetOuterWindow();
+  nsCOMPtr<nsPIDOMWindowOuter> outerParent = outer->GetScriptableTop();
+  bool isTopLevelBrowsingContext = outer.get() == outerParent.get();
+
+  if (!isTopLevelBrowsingContext) return false;
+  // calculate effective label
+  RefPtr<Label> effectiveLabel = confidentiality.Downgrade(*privs);
+  RoleArray *newLabelRoles = effectiveLabel->GetDirectRoles();
+  // contains more than one disjunctive set
+  if (newLabelRoles->Length() > 1) {
+    return true;
+  }
+
+  // the disjuntive set needs to contain a originprincipal
+  if (newLabelRoles->Length() == 1) {
+    Role* role = newLabelRoles->ElementAt(0);
+    if (!role->ContainsOriginPrincipal()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Check if information can flow from the compartment to an object labeled with
 // |confidentiality| and |integrity| into the compartment.
 NS_EXPORT_(bool)

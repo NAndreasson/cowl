@@ -136,36 +136,9 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
     return;
   }
 
-  nsCOMPtr<nsIGlobalObject> nativeGlobal = xpc::NativeGlobal(global.Get());
-
-  // Get the underlying window, if it exists
-  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryInterface(nativeGlobal));
-
-  // TODO, assert here, what if there is no window?
-
-  nsCOMPtr<nsPIDOMWindowOuter> outer = win->GetOuterWindow();
-  nsCOMPtr<nsPIDOMWindowOuter> outerParent = outer->GetScriptableTop();
-
-  bool isTopLevelBrowsingContext = outer.get() == outerParent.get();
-  if (isTopLevelBrowsingContext) {
-    // calculate effective label
-    RefPtr<Label> effectiveLabel = aLabel.Downgrade(*privs);
-
-    RoleArray *newLabelRoles = effectiveLabel->GetDirectRoles();
-    // contains more than one disjunctive set
-    if (newLabelRoles->Length() > 1) {
-      JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
-      return;
-    }
-
-    // the disjuntive set needs to contain a originprincipal
-    if (newLabelRoles->Length() == 1) {
-      Role* role = newLabelRoles->ElementAt(0);
-      if (!role->ContainsOriginPrincipal()) {
-        JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
-        return;
-      }
-    }
+  if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, aLabel, privs)) {
+    JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
+    return;
   }
 
   xpc::cowl::SetCompartmentConfidentialityLabel(compartment, &aLabel);
@@ -173,8 +146,6 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
   js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
 
   xpc::cowl::RefineCompartmentFlags(compartment);
-  // CURRENTLY NOT WORKING
-  // xpc::cowl::RefineCompartmentCSP(compartment);
 }
 
 already_AddRefed<Label>

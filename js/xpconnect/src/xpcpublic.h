@@ -595,6 +595,10 @@ EnableCompartmentConfinement(JSCompartment *compartment);
 NS_EXPORT_(bool)
 IsCompartmentConfined(JSCompartment *compartment);
 
+NS_EXPORT_(bool)
+LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
+    mozilla::dom::Label &confidentiality, mozilla::dom::Label *privs);
+
 #define DECLARE_SET_LABEL(name)                       \
     NS_EXPORT_(void)                                  \
     SetCompartment##name(JSCompartment *compartment,  \
