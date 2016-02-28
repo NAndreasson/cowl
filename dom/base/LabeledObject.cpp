@@ -90,7 +90,7 @@ LabeledObject::Constructor(const GlobalObject& global,
   // perform a write check
   RefPtr<LabeledObject> labeledObject = new LabeledObject(obj, *confidentiality, *integrity);
 
-  // RefPtr<Label> privacy = COWL::GetPrivacyLabel(global, cx, aRv);
+  // RefPtr<Label> privacy = COWL::GetConfidentialityLabel(global, cx, aRv);
   // return Constructor(global, cx, blob, *privacy, *trust, aRv);
   return labeledObject.forget();
 }
@@ -170,21 +170,20 @@ LabeledObject::GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> re
   RefPtr<Label> privs = xpc::cowl::GetCompartmentPrivileges(compartment);
 
   // the current confidentiality label in context which called protectedObject
-  RefPtr<Label> compConfidentiality = xpc::cowl::GetCompartmentPrivacyLabel(compartment);
+  RefPtr<Label> compConfidentiality = xpc::cowl::GetCompartmentConfidentialityLabel(compartment);
   RefPtr<Label> tmpConfLabel = compConfidentiality->And(*mConfidentiality, aRv);
   RefPtr<Label> newConfLabel = tmpConfLabel->Downgrade(*privs);
-
 
   // TODO perform a check for stuck-top level context.
 
   // set to new conf label
-  xpc::cowl::SetCompartmentPrivacyLabel(compartment, newConfLabel);
+  xpc::cowl::SetCompartmentConfidentialityLabel(compartment, newConfLabel);
 
-  RefPtr<Label> compIntegrity = xpc::cowl::GetCompartmentTrustLabel(compartment);
+  RefPtr<Label> compIntegrity = xpc::cowl::GetCompartmentIntegrityLabel(compartment);
   RefPtr<Label> tmpIntLabel = compIntegrity->Or(*mIntegrity, aRv);
   RefPtr<Label> newIntLabel = tmpIntLabel->Downgrade(*privs);
 
-  xpc::cowl::SetCompartmentTrustLabel(compartment, newIntLabel);
+  xpc::cowl::SetCompartmentIntegrityLabel(compartment, newIntLabel);
 
   retval.set(mObj);
 }

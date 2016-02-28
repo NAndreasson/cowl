@@ -605,11 +605,11 @@ IsCompartmentConfined(JSCompartment *compartment);
     GetCompartment##name(JSCompartment *compartment);
 
 // Compartment label
-DECLARE_SET_LABEL(PrivacyLabel);
-DECLARE_GET_LABEL(PrivacyLabel);
+DECLARE_SET_LABEL(ConfidentialityLabel);
+DECLARE_GET_LABEL(ConfidentialityLabel);
 
-DECLARE_SET_LABEL(TrustLabel);
-DECLARE_GET_LABEL(TrustLabel);
+DECLARE_SET_LABEL(IntegrityLabel);
+DECLARE_GET_LABEL(IntegrityLabel);
 
 DECLARE_SET_LABEL(Privileges);
 DECLARE_GET_LABEL(Privileges);
@@ -621,17 +621,17 @@ DECLARE_GET_LABEL(Privileges);
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *compartment, JSCompartment *source, bool isRead = true);
 
-// Can information flow to compartment from object labeld with privacy and trust
+// Can information flow to compartment from object labeld with confidentiality andintegrity
 NS_EXPORT_(bool)
-GuardRead(JSCompartment *compatment,
-          mozilla::dom::Label &privacy, mozilla::dom::Label &trust,
+GuardRead(JSCompartment *compartment,
+          mozilla::dom::Label &confidentiality, mozilla::dom::Label &integrity,
           mozilla::dom::Label *aPrivs = nullptr,
           JSContext *cx = nullptr);
 
-// Can information flow from compartment to object labeld with privacy and trust
+// Can information flow from compartment to object labeld with confidentiality andintegrity
 NS_EXPORT_(bool)
 GuardWrite(JSCompartment *compartment,
-          mozilla::dom::Label &privacy, mozilla::dom::Label &trust,
+          mozilla::dom::Label &confidentiality, mozilla::dom::Label &integrity,
           mozilla::dom::Label *aPrivs = nullptr);
 
 // Can information flow from compartment to dst

@@ -109,7 +109,7 @@ COWL::GetConfidentiality(const GlobalObject& global, JSContext* cx,
     JSErrorResult(cx, aRv, "COWL is not enabled.");
     return nullptr;
   }
-  GET_LABEL(PrivacyLabel);
+  GET_LABEL(ConfidentialityLabel);
 }
 
 void
@@ -122,13 +122,12 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
   JSCompartment *compartment = js::GetObjectCompartment(global.Get());
   MOZ_ASSERT(compartment);
 
-
   RefPtr<Label> privs = xpc::cowl::GetCompartmentPrivileges(compartment);
 
   RefPtr<Label> currentLabel = GetConfidentiality(global, cx, aRv);
   if (aRv.Failed()) return;
   if (!currentLabel) {
-    JSErrorResult(cx, aRv, "Failed to get current privacy label.");
+    JSErrorResult(cx, aRv, "Failed to get current confidentiality label.");
     return;
   }
 
@@ -169,7 +168,7 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
     }
   }
 
-  xpc::cowl::SetCompartmentPrivacyLabel(compartment, &aLabel);
+  xpc::cowl::SetCompartmentConfidentialityLabel(compartment, &aLabel);
   // This affects cross-compartment communication. Adjust wrappers:
   js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
 
@@ -187,7 +186,7 @@ COWL::GetIntegrity(const GlobalObject& global, JSContext* cx,
     JSErrorResult(cx, aRv, "COWL is not enabled.");
     return nullptr;
   }
-  GET_LABEL(TrustLabel);
+  GET_LABEL(IntegrityLabel);
 }
 
 void
@@ -214,7 +213,7 @@ COWL::SetIntegrity(const GlobalObject& global, JSContext* cx,
     return;
   }
 
-  xpc::cowl::SetCompartmentTrustLabel(compartment, &aLabel);
+  xpc::cowl::SetCompartmentIntegrityLabel(compartment, &aLabel);
   // Changing the trust/integrity label affects cross-compartment
   // communication. Adjust wrappers:
   js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());

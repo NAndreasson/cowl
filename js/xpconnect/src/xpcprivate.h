@@ -3675,10 +3675,8 @@ namespace cowl {
 class COWLConfig
 {
 public:
-    COWLConfig() : mPrivacyLabel(nullptr)
-                 , mTrustLabel(nullptr)
-                 , mPrivacyClearance(nullptr)
-                 , mTrustClearance(nullptr)
+    COWLConfig() : mConfidentialityLabel(nullptr)
+                 , mIntegrityLabel(nullptr)
                  , mPrivileges(nullptr)
                  , mSetSandboxFlags(false)
                  , mSandboxFlags(0)
@@ -3686,19 +3684,17 @@ public:
     {}
 
     ~COWLConfig() {
-        mPrivacyLabel     = nullptr;
-        mTrustLabel       = nullptr;
-        mPrivacyClearance = nullptr;
-        mTrustClearance   = nullptr;
-        mPrivileges       = nullptr;
-        mSetSandboxFlags  = false;
-        mSandboxFlags     = 0;
-        mCSPIndex         = 0;
+        mConfidentialityLabel   = nullptr;
+        mIntegrityLabel         = nullptr;
+        mPrivileges             = nullptr;
+        mSetSandboxFlags        = false;
+        mSandboxFlags           = 0;
+        mCSPIndex               = 0;
     }
 
     // Is the compartment confinement enabled.
     inline bool isEnabled() {
-        return  !!mPrivacyLabel && !!mTrustLabel;
+        return  !!mConfidentialityLabel && !!mIntegrityLabel;
     }
 
 #define DEFINE_SET_LABEL(name)                                           \
@@ -3713,28 +3709,14 @@ public:
         return !l ? nullptr: l.forget();                                 \
     }
 
-#define DEFINE_SET_CLEARANCE(name)                                       \
-    inline void Set##name(mozilla::dom::Label *aLabel) {                 \
-        NS_ASSERTION(aLabel, "Set##name called with null label!");       \
-        (m##name) = aLabel;                                              \
-    }
-
     // Compartment label
-    DEFINE_SET_LABEL(PrivacyLabel);
-    DEFINE_GET_LABEL(PrivacyLabel);
+    DEFINE_SET_LABEL(ConfidentialityLabel);
+    DEFINE_GET_LABEL(ConfidentialityLabel);
 
-    DEFINE_SET_LABEL(TrustLabel);
-    DEFINE_GET_LABEL(TrustLabel);
-
-    // Compartment clearance
-    DEFINE_SET_CLEARANCE(PrivacyClearance);
-    DEFINE_GET_LABEL(PrivacyClearance);
-
-    DEFINE_SET_CLEARANCE(TrustClearance);
-    DEFINE_GET_LABEL(TrustClearance);
+    DEFINE_SET_LABEL(IntegrityLabel);
+    DEFINE_GET_LABEL(IntegrityLabel);
 
 
-#undef DEFINE_SET_CLEARANCE
 #undef DEFINE_SET_LABEL
 #undef DEFINE_GET_LABEL
 
@@ -3769,12 +3751,8 @@ public:
 private:
 
     // Compartment labels
-    RefPtr<mozilla::dom::Label> mPrivacyLabel;
-    RefPtr<mozilla::dom::Label> mTrustLabel;
-
-    // Compartment clearance
-    RefPtr<mozilla::dom::Label> mPrivacyClearance;
-    RefPtr<mozilla::dom::Label> mTrustClearance;
+    RefPtr<mozilla::dom::Label> mConfidentialityLabel;
+    RefPtr<mozilla::dom::Label> mIntegrityLabel;
 
     // Compartment privileges
     RefPtr<mozilla::dom::Label> mPrivileges;

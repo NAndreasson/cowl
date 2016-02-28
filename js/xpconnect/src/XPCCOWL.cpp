@@ -45,14 +45,14 @@ EnableCompartmentConfinement(JSCompartment *compartment)
   if (IsCompartmentConfined(compartment))
     return;
 
-  RefPtr<Label> privacy = new Label();
-  MOZ_ASSERT(privacy);
+  RefPtr<Label> confidentiality = new Label();
+  MOZ_ASSERT(confidentiality);
 
-  RefPtr<Label> trust = new Label();
-  MOZ_ASSERT(trust);
+  RefPtr<Label> integrity = new Label();
+  MOZ_ASSERT(integrity);
 
-  COWL_CONFIG(compartment).SetPrivacyLabel(privacy);
-  COWL_CONFIG(compartment).SetTrustLabel(trust);
+  COWL_CONFIG(compartment).SetConfidentialityLabel(confidentiality);
+  COWL_CONFIG(compartment).SetIntegrityLabel(integrity);
 
   // set privileges to compartment principal
   // we're not "copying" the principal since the principal may be a
@@ -126,19 +126,19 @@ IsCompartmentConfined(JSCompartment *compartment)
     return COWL_CONFIG(compartment).Get##name();                    \
   }
 
-// This function sets the compartment privacy label. It clones the given label.
+// This function sets the compartment confidentiality label. It clones the given label.
 // IMPORTANT: This function should not be exported to untrusted code.
-// Untrusted code can only set the privacy label to a label that
+// Untrusted code can only set the confidentiality label to a label that
 // subsumes the "current label".
-DEFINE_SET_LABEL(PrivacyLabel)
-DEFINE_GET_LABEL(PrivacyLabel)
+DEFINE_SET_LABEL(ConfidentialityLabel)
+DEFINE_GET_LABEL(ConfidentialityLabel)
 
-// This function sets the compartment trust label. It clones the given label.
+// This function sets the compartment integrity label. It clones the given label.
 // IMPORTANT: This function should not be exported to untrusted code.
-// Untrusted code can only set the trust label to a label subsumed by
+// Untrusted code can only set the integrity label to a label subsumed by
 // the "current label".
-DEFINE_SET_LABEL(TrustLabel)
-DEFINE_GET_LABEL(TrustLabel)
+DEFINE_SET_LABEL(IntegrityLabel)
+DEFINE_GET_LABEL(IntegrityLabel)
 
 #undef DEFINE_SET_LABEL
 #undef DEFINE_GET_LABEL
@@ -165,10 +165,10 @@ GetCompartmentPrivileges(JSCompartment*compartment)
 }
 
 // Check if information can flow from the compartment to an object labeled with
-// |privacy| and |trust| into the compartment.
+// |confidentiality| and |integrity| into the compartment.
 NS_EXPORT_(bool)
 GuardWrite(JSCompartment *compartment,
-           Label &privacy, Label &trust, Label *aPrivs)
+           Label &confidentiality, Label &integrity, Label *aPrivs)
 {
   ErrorResult aRv;
 
@@ -178,12 +178,12 @@ GuardWrite(JSCompartment *compartment,
   }
 
   RefPtr<Label> privs = aPrivs ? aPrivs : new Label();
-  RefPtr<Label> compPrivacy, compTrust;
-  compPrivacy = GetCompartmentPrivacyLabel(compartment);
-  compTrust   = GetCompartmentTrustLabel(compartment);
+  RefPtr<Label> compConfidentiality, compIntegrity;
+  compConfidentiality = GetCompartmentConfidentialityLabel(compartment);
+  compIntegrity   = GetCompartmentIntegrityLabel(compartment);
 
   // If any of the labels are missing, don't allow the information flow
-  if (!compPrivacy || !compTrust) {
+  if (!compConfidentiality || !compIntegrity) {
     NS_WARNING("Missing labels");
     return false;
   }
@@ -191,25 +191,25 @@ GuardWrite(JSCompartment *compartment,
 
 #if COWL_DEBUG
   {
-    nsAutoString compPrivacyStr, compTrustStr, privacyStr, trustStr, privsStr;
-    compPrivacy->Stringify(compPrivacyStr);
-    compTrust->Stringify(compTrustStr);
-    privacy.Stringify(privacyStr);
-    trust.Stringify(trustStr);
+    nsAutoString compConfidentialityStr, compIntegrityStr, confidentialityStr, integrityStr, privsStr;
+    compConfidentiality->Stringify(compConfidentialityStr);
+    compIntegrity->Stringify(compIntegrityStr);
+    confidentiality.Stringify(confidentialityStr);
+    integrity.Stringify(integrityStr);
     privs->Stringify(privsStr);
 
     printf("GuardWrite <%s,%s> to <%s,%s> | %s\n",
-           NS_ConvertUTF16toUTF8(compPrivacyStr).get(),
-           NS_ConvertUTF16toUTF8(compTrustStr).get(),
-           NS_ConvertUTF16toUTF8(privacyStr).get(),
-           NS_ConvertUTF16toUTF8(trustStr).get(),
+           NS_ConvertUTF16toUTF8(compConfidentialityStr).get(),
+           NS_ConvertUTF16toUTF8(compIntegrityStr).get(),
+           NS_ConvertUTF16toUTF8(confidentialityStr).get(),
+           NS_ConvertUTF16toUTF8(integrityStr).get(),
            NS_ConvertUTF16toUTF8(privsStr).get());
   }
 #endif
 
 
-  // if not <compPrivacy,compTrust> [=_privs <privacy,trust>
-  if (!(privacy.Subsumes(*privs, *compPrivacy) && compTrust->Subsumes(*privs, trust))) {
+  // if not <compConfidentiality,compIntegrity> [=_privs <confidentiality,integrity>
+  if (!(confidentiality.Subsumes(*privs, *compConfidentiality) && compIntegrity->Subsumes(*privs, integrity))) {
     NS_WARNING("Label not above current label");
     return false;
   }
@@ -248,47 +248,47 @@ GuardWrite(JSCompartment *compartment, JSCompartment *dst)
     NS_WARNING("Destination compartmetn is not confined");
     return false;
   }
-  RefPtr<Label> privacy = GetCompartmentPrivacyLabel(dst);
-  RefPtr<Label> trust   = GetCompartmentTrustLabel(dst);
+  RefPtr<Label> confidentiality = GetCompartmentConfidentialityLabel(dst);
+  RefPtr<Label> integrity   = GetCompartmentIntegrityLabel(dst);
   RefPtr<Label> privs   = GetCompartmentPrivileges(compartment);
 
-  if (!privacy || !trust || !privs) {
-    NS_WARNING("Missing privacy or trust labels");
+  if (!confidentiality || !integrity || !privs) {
+    NS_WARNING("Missing confidentiality or integrity labels");
     return false;
   }
 
-  return GuardWrite(compartment, *privacy, *trust, privs);
+  return GuardWrite(compartment, *confidentiality, *integrity, privs);
 }
 
-// Check if information can flow from an object labeled with |privacy|
-// and |trust| into the compartment. For this to hold, the compartment
-// must preserve privacy, i.e., the compartment privacy label must
-// subsume the object privacy label, and not be corrupted, i.e., the
-// object trust label must be at least as trustworthy as the
-// compartment trust label.
+// Check if information can flow from an object labeled with |confidentiality|
+// and |integrity| into the compartment. For this to hold, the compartment
+// must preserve confidentiality, i.e., the compartment confidentiality label must
+// subsume the object confidentiality label, and not be corrupted, i.e., the
+// object integrity label must be at least as trustworthy as the
+// compartment integrity label.
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *compartment,
-          Label &privacy, Label &trust, Label *aPrivs, JSContext *cx)
+          Label &confidentiality, Label &integrity, Label *aPrivs, JSContext *cx)
 {
   ErrorResult aRv;
 
   RefPtr<Label> privs = aPrivs ? aPrivs : new Label();
-  RefPtr<Label> compPrivacy, compTrust;
+  RefPtr<Label> compConfidentiality, compIntegrity;
 
   if (IsCompartmentConfined(compartment)) {
-    compPrivacy = GetCompartmentPrivacyLabel(compartment);
-    compTrust   = GetCompartmentTrustLabel(compartment);
+    compConfidentiality = GetCompartmentConfidentialityLabel(compartment);
+    compIntegrity   = GetCompartmentIntegrityLabel(compartment);
   } else {
     // compartment is not confined
     nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
     RefPtr<Role> privRole = new Role(privPrin);
-    compPrivacy = new Label(*privRole, aRv);
-    compTrust   = new Label();
+    compConfidentiality = new Label(*privRole, aRv);
+    compIntegrity   = new Label();
     if (aRv.Failed()) return false;
   }
 
   // If any of the labels are missing, don't allow the information flow
-  if (!compPrivacy || !compTrust) {
+  if (!compConfidentiality || !compIntegrity) {
     NS_WARNING("Missing labels!");
     return false;
   }
@@ -296,25 +296,25 @@ GuardRead(JSCompartment *compartment,
 
 #if COWL_DEBUG
   {
-    nsAutoString compPrivacyStr, compTrustStr, privacyStr, trustStr, privsStr;
-    compPrivacy->Stringify(compPrivacyStr);
-    compTrust->Stringify(compTrustStr);
-    privacy.Stringify(privacyStr);
-    trust.Stringify(trustStr);
+    nsAutoString compConfidentialityStr, compIntegrityStr, confidentialityStr, integrityStr, privsStr;
+    compConfidentiality->Stringify(compConfidentialityStr);
+    compIntegrity->Stringify(compIntegrityStr);
+    confidentiality.Stringify(confidentialityStr);
+    integrity.Stringify(integrityStr);
     privs->Stringify(privsStr);
 
     printf("GuardRead <%s,%s> to <%s,%s> | %s\n",
-           NS_ConvertUTF16toUTF8(privacyStr).get(),
-           NS_ConvertUTF16toUTF8(trustStr).get(),
-           NS_ConvertUTF16toUTF8(compPrivacyStr).get(),
-           NS_ConvertUTF16toUTF8(compTrustStr).get(),
+           NS_ConvertUTF16toUTF8(confidentialityStr).get(),
+           NS_ConvertUTF16toUTF8(integrityStr).get(),
+           NS_ConvertUTF16toUTF8(compConfidentialityStr).get(),
+           NS_ConvertUTF16toUTF8(compIntegrityStr).get(),
            NS_ConvertUTF16toUTF8(privsStr).get());
   }
 #endif
 
-  // <privacy,trust> [=_privs <compPrivacy,compTrust>
-  if (compPrivacy->Subsumes(*privs, privacy) &&
-      trust.Subsumes(*privs, *compTrust)) {
+  // <confidentiality,integrity> [=_privs <compConfidentiality,compIntegrity>
+  if (compConfidentiality->Subsumes(*privs, confidentiality) &&
+      integrity.Subsumes(*privs, *compIntegrity)) {
     return true;
   }
 
@@ -355,26 +355,26 @@ GuardRead(JSCompartment *compartment, JSCompartment *source, bool isGET)
 
 
 
-  RefPtr<Label> privacy, trust;
+  RefPtr<Label> confidentiality, integrity;
 
   if (IsCompartmentConfined(source)) {
-    privacy = GetCompartmentPrivacyLabel(source);
-    trust   = GetCompartmentTrustLabel(source);
+    confidentiality = GetCompartmentConfidentialityLabel(source);
+    integrity   = GetCompartmentIntegrityLabel(source);
   } else {
-    privacy = new Label();
-    trust   = new Label();
+    confidentiality = new Label();
+    integrity   = new Label();
   }
 
   RefPtr<Label> privs = isGET ? GetCompartmentPrivileges(compartment)
                                 : GetCompartmentPrivileges(source);
 
 
-  if (!privacy || !trust) {
-    NS_WARNING("Missing privacy or trust labels");
+  if (!confidentiality || !integrity) {
+    NS_WARNING("Missing confidentiality or integrity labels");
     return false;
   }
 
-  return GuardRead(compartment, *privacy, *trust, privs);
+  return GuardRead(compartment, *confidentiality, *integrity, privs);
 }
 
 static inline uint32_t cowlSandboxFlags() {
@@ -387,12 +387,12 @@ static inline uint32_t cowlSandboxFlags() {
 NS_EXPORT_(void)
 RefineCompartmentFlags(JSCompartment *compartment)
 {
-  RefPtr<Label> privacy = GetCompartmentPrivacyLabel(compartment);
+  RefPtr<Label> confidentiality = GetCompartmentConfidentialityLabel(compartment);
 
   // TODO, take privilege in consideration.... Should extract to label downgrade algo...
-  if (privacy->IsEmpty()) {
+  if (confidentiality->IsEmpty()) {
 #if COWL_DEBUG
-    printf("Refine: Privacy label is empty, do nothing\n");
+    printf("Refine: confidentiality label is empty, do nothing\n");
 #endif
     return;
   }
@@ -402,7 +402,7 @@ RefineCompartmentFlags(JSCompartment *compartment)
   RefPtr<Label> emptyLabel = new Label();
 
   // check effective label
-  if (emptyLabel->Subsumes(*privilege, *privacy)) {
+  if (emptyLabel->Subsumes(*privilege, *confidentiality)) {
 #if COWL_DEBUG
     printf("Effective label empty\n");
 #endif
@@ -445,8 +445,8 @@ RefineCompartmentFlags(JSCompartment *compartment)
 // {
 //   nsresult rv;
 
-//   // Get the compartment privacy label:
-//   RefPtr<Label> privacy = GetCompartmentPrivacyLabel(compartment);
+//   // Get the compartment confidentiality label:
+//   RefPtr<Label> confidentiality = GetCompartmentPrivacyLabel(compartment);
 
 //   // Get the compartment principal
 //   nsCOMPtr<nsIPrincipal> compPrincipal = GetCompartmentPrincipal(compartment);
