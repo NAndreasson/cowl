@@ -166,8 +166,8 @@ GetCompartmentPrivileges(JSCompartment*compartment)
 
 NS_EXPORT_(bool)
 LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
-  Label& confidentiality,
-  Label* privs)
+                                    Label& confidentiality,
+                                    Label* privs)
 {
   // Get the compartment global
   nsCOMPtr<nsIGlobalObject> global =
