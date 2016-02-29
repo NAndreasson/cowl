@@ -8,6 +8,7 @@
 #define nsWindowMemoryReporter_h__
 
 #include "nsIMemoryReporter.h"
+#include "nsGlobalWindow.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsDataHashtable.h"

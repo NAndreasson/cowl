@@ -6,7 +6,6 @@
 
 #include "amIAddonManager.h"
 #include "nsWindowMemoryReporter.h"
-#include "nsGlobalWindow.h"
 #include "nsIDocument.h"
 #include "nsIDOMWindowCollection.h"
 #include "nsIEffectiveTLDService.h"
@@ -19,6 +18,8 @@
 #include "XPCJSMemoryReporter.h"
 #include "js/MemoryMetrics.h"
 #include "nsServiceManagerUtils.h"
+
+#include "nsQueryObject.h"
 
 using namespace mozilla;
 

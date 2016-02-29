@@ -31,6 +31,8 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ScriptSettings.h"
 
+#include "js/Date.h"
+
 using namespace mozilla::dom;
 
 bool
