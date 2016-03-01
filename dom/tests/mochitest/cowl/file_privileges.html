@@ -1,0 +1,58 @@
+<script>
+COWL.enable();
+
+function ok(result, message) {
+  window.parent.postMessage({ok: result, desc: message}, "*");
+}
+
+function testWeakDelegate() {
+  var currentPrivilege = COWL.privilege;
+  var currentPrivilegeLabel = currentPrivilege.asLabel;
+
+  var newLabel = currentPrivilegeLabel.or('app:user1');
+  var newDelegatedPrivilege = currentPrivilege.delegate(newLabel);
+
+  ok(currentPrivilege.subsumes(newDelegatedPrivilege), "New delegated privilege is weaker");
+  ok(!newDelegatedPrivilege.subsumes(currentPrivilege), "New delegated privilege is weaker");
+}
+
+function testStrongerDelegate() {
+  // create a stronger privilege...
+  var currentPrivilege = COWL.privilege;
+  var currentPrivilegeLabel = currentPrivilege.asLabel;
+
+  var newLabel = currentPrivilegeLabel.and('app:user1');
+
+  try {
+    currentPrivilege.delegate(newLabel);
+    ok(false, "Trying to forge a stronger privilege should throw error");
+  } catch(e) {
+    ok(true, "Trying to forge a stronger privilege should throw error");
+  }
+}
+
+function testFreshPrivilege() {
+  // two fresh privileges should not be equal
+  var freshPriv1 = new FreshPrivilege();
+  var freshPriv2 = new FreshPrivilege();
+
+  ok(!freshPriv1.asLabel.equals(freshPriv2.asLabel), "Fresh privileges should be unique");
+}
+
+function testCombine() {
+  var freshPriv1 = new FreshPrivilege();
+  var freshPriv2 = new FreshPrivilege();
+
+  var combinedPriv = freshPriv1.combine(freshPriv2);
+  var combinedPrivLabel = combinedPriv.asLabel;
+
+  ok(combinedPrivLabel.subsumes(freshPriv1.asLabel), "Combined privilege subsumes old privileges");
+  ok(combinedPrivLabel.subsumes(freshPriv2.asLabel), "Combined privilege subsumes old privileges");
+}
+
+testWeakDelegate();
+testStrongerDelegate();
+testFreshPrivilege();
+testCombine();
+
+</script>
