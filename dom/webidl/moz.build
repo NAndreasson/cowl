@@ -407,7 +407,6 @@ WEBIDL_FILES = [
     'ResourceStatsManager.webidl',
     'Response.webidl',
     'RGBColor.webidl',
-    'Role.webidl',
     'RTCStatsReport.webidl',
     'Screen.webidl',
     'ScreenOrientation.webidl',
