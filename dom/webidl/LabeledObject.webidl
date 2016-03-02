@@ -4,7 +4,7 @@ dictionary CILabel {
 };
 
 // change DomString to object?
-[Constructor(object obj, CILabel labels)]
+[Constructor(object obj, optional CILabel labels)]
 interface LabeledObject {
 
   // Blob privacy and trust labels
