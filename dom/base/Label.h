@@ -23,7 +23,7 @@ namespace dom {
 
   class Privilege;
 
-typedef nsTArray<RefPtr<mozilla::dom::Role> > RoleArray;
+typedef nsTArray<mozilla::dom::Role*> RoleArray;
 
 class Label final : public nsISupports
                       , public nsWrapperCache
@@ -117,8 +117,8 @@ private:
 class RoleComparator {
 
 public:
-  bool Equals(const RefPtr<Role> &r1,
-              const RefPtr<Role> &r2) const
+  bool Equals(const Role* r1,
+              const Role* r2) const
   {
     return r1->Equals(*r2);
   }
@@ -127,8 +127,8 @@ public:
 class RoleSubsumeComparator {
 
 public:
-  bool Equals(const RefPtr<Role> &r1,
-              const RefPtr<Role> &r2) const
+  bool Equals(const Role* r1,
+              const Role* r2) const
   {
     return r1->Subsumes(*r2);
   }
@@ -137,8 +137,8 @@ public:
 class RoleSubsumeInvComparator {
 
 public:
-  bool Equals(const RefPtr<Role> &r1,
-              const RefPtr<Role> &r2) const
+  bool Equals(const Role* r1,
+              const Role* r2) const
   {
     return r2->Subsumes(*r1);
   }

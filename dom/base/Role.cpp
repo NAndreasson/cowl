@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/Role.h"
-#include "mozilla/dom/RoleBinding.h"
 #include "mozilla/dom/COWLParser.h"
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
@@ -17,15 +16,6 @@
 
 namespace mozilla {
 namespace dom {
-
-//NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_1(Role, mPrincipals)
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(Role)
-NS_IMPL_CYCLE_COLLECTING_ADDREF(Role)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(Role)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Role)
-  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
 
 Role::Role()
 {
@@ -95,49 +85,20 @@ Role::~Role()
 {
 }
 
-JSObject*
-Role::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
-{
-  return RoleBinding::Wrap(aCx, this, aGivenProto);
-}
-
 Role*
 Role::GetParentObject() const
 {
   return nullptr; //TODO: return something sensible here
 }
 
-already_AddRefed<Role>
-Role::Constructor(const GlobalObject& global, const nsAString& principal,
-                  ErrorResult& aRv)
-{
-  RefPtr<Role> role = new Role(principal, aRv);
-  if (aRv.Failed())
-    return nullptr;
-  return role.forget();
-}
-
-// already_AddRefed<Role>
-// Role::Constructor(const GlobalObject& global, const Sequence<nsString >& principals,
-//                   ErrorResult& aRv)
-// {
-//   RefPtr<Role> role = new Role();
-//   for (unsigned i = 0; i < principals.Length(); ++i) {
-//     role->_Or(principals[i],aRv);
-//     if (aRv.Failed())
-//       return nullptr;
-//   }
-//   return role.forget();
-// }
-
 bool
-Role::Equals(mozilla::dom::Role& other)
+Role::Equals(const mozilla::dom::Role& other) const
 {
   // Break out early if the other and this are the same.
   if (&other == this)
     return true;
 
-  PrincipalArray *otherPrincipals = other.GetDirectPrincipals();
+  PrincipalArray *otherPrincipals = const_cast<mozilla::dom::Role&>(other).GetDirectPrincipals();
 
   // The other role is of a different size, can't be equal.
   if (otherPrincipals->Length() != mPrincipals.Length())
@@ -155,13 +116,13 @@ Role::Equals(mozilla::dom::Role& other)
 }
 
 bool
-Role::Subsumes(mozilla::dom::Role& other)
+Role::Subsumes(const mozilla::dom::Role& other) const
 {
   // Break out early if the other points to this
   if (&other == this)
     return true;
 
-  PrincipalArray *otherPrincipals = other.GetDirectPrincipals();
+  PrincipalArray *otherPrincipals = const_cast<mozilla::dom::Role&>(other).GetDirectPrincipals();
 
   // The other role is smaller, this role cannot imply (subsume) it.
   if (otherPrincipals->Length() < mPrincipals.Length())
@@ -189,7 +150,7 @@ Role::Subsumes(mozilla::dom::Role& other)
 //   return _this.forget();
 // }
 
-already_AddRefed<Role>
+Role*
 Role::Or(nsIPrincipal* principal, ErrorResult& aRv)
 {
   nsAutoCString origin1;
@@ -198,16 +159,16 @@ Role::Or(nsIPrincipal* principal, ErrorResult& aRv)
 
   _Or(NS_ConvertASCIItoUTF16(origin1), true, aRv);
 
-  RefPtr<Role> _this = this;
-  return _this.forget();
+  Role* _this = this;
+  return _this;
 }
 
-already_AddRefed<Role>
+Role*
 Role::Or(Role& other, ErrorResult& aRv)
 {
   _Or(other);
-  RefPtr<Role> _this = this;
-  return _this.forget();
+  Role* _this = this;
+  return _this;
 }
 
 void
@@ -229,10 +190,10 @@ Role::Stringify(nsString& retval)
   retval.Append(NS_LITERAL_STRING(""));
 }
 
-already_AddRefed<Role>
+Role*
 Role::Clone(ErrorResult &aRv) const
 {
-  RefPtr<Role> role = new Role();
+  Role* role = new Role();
 
   if(!role) {
     aRv = NS_ERROR_OUT_OF_MEMORY;
@@ -243,7 +204,7 @@ Role::Clone(ErrorResult &aRv) const
   for (unsigned i = 0; i < mPrincipals.Length(); ++i) {
     newPrincipals->InsertElementAt(i, mPrincipals[i]);
   }
-  return role.forget();
+  return role;
 }
 
 //
@@ -277,7 +238,6 @@ int
 PrincipalComparator::Compare(const COWLPrincipal &p1,
                                 const COWLPrincipal &p2) const
 {
-  // get their respective stirngs..
   nsAutoString p1String;
   p1.Stringify(p1String);
   nsAutoString p2String;

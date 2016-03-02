@@ -62,7 +62,7 @@ already_AddRefed<Label>
 Label::Constructor(const GlobalObject& global, const nsAString& principal,
                    ErrorResult& aRv)
 {
-  RefPtr<Role> role = new Role(principal, aRv);
+  Role* role = new Role(principal, aRv);
   if (aRv.Failed()) return nullptr;
 
   RefPtr<Label> label = new Label(*role, aRv);
@@ -135,7 +135,7 @@ Label::Subsumes(const mozilla::dom::Label& other)
 already_AddRefed<Label>
 Label::And(const nsAString& principal, ErrorResult& aRv)
 {
-  RefPtr<Role> role = new Role(principal, aRv);
+  Role* role = new Role(principal, aRv);
   if (aRv.Failed())
     return nullptr;
 
@@ -185,7 +185,7 @@ Label::Or(const nsAString& principal, ErrorResult& aRv)
   if (aRv.Failed())
     return nullptr;
 
-  RefPtr<Role> role = new Role(principal, aRv);
+  Role* role = new Role(principal, aRv);
   if (aRv.Failed())
     return nullptr;
 
@@ -243,7 +243,7 @@ Label::Clone(ErrorResult &aRv) const
 
   RoleArray *newRoles = label->GetDirectRoles();
   for (unsigned i = 0; i < mRoles.Length(); i++) {
-    RefPtr<Role> role = mRoles[i]->Clone(aRv);
+    Role* role = mRoles[i]->Clone(aRv);
     if (aRv.Failed())
       return nullptr;
     newRoles->InsertElementAt(i, role);
@@ -356,7 +356,7 @@ Label::Subsumes(const mozilla::dom::Label &privs,
 void
 Label::_And(nsIPrincipal *p, ErrorResult& aRv)
 {
-  RefPtr<Role> role = new Role(p);
+  Role* role = new Role(p);
   _And(*role, aRv);
 }
 
@@ -391,7 +391,7 @@ Label::_Or(mozilla::dom::Role& role, ErrorResult& aRv)
   Label tmpLabel;
 
   for (unsigned i = 0; i < mRoles.Length(); ++i) {
-    RefPtr<Role> nRole = mRoles.ElementAt(i);
+    Role* nRole = mRoles.ElementAt(i);
     nRole->_Or(role);
 
     tmpLabel.InternalAnd(*nRole);
@@ -458,7 +458,7 @@ Label::InternalAnd(mozilla::dom::Role& role, ErrorResult* aRv, bool clone)
     while(mRoles.RemoveElement(&role, cmp)) ;
 
     if (clone && aRv) {
-      RefPtr<mozilla::dom::Role> roleCopy = role.Clone(*aRv);
+      mozilla::dom::Role* roleCopy = role.Clone(*aRv);
       if(!roleCopy)
         return;
 

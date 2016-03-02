@@ -58,7 +58,7 @@ EnableCompartmentConfinement(JSCompartment *compartment)
   // we're not "copying" the principal since the principal may be a
   // null principal (iframe sandbox) and thus not a codebase principal
   nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
-  RefPtr<Role> privRole = new Role(privPrin);
+  Role* privRole = new Role(privPrin);
   ErrorResult aRv;
   RefPtr<Label> privileges = new Label(*privRole, aRv);
   MOZ_ASSERT(privileges);
@@ -319,7 +319,7 @@ GuardRead(JSCompartment *compartment,
   } else {
     // compartment is not confined
     nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
-    RefPtr<Role> privRole = new Role(privPrin);
+    Role* privRole = new Role(privPrin);
     compConfidentiality = new Label(*privRole, aRv);
     compIntegrity   = new Label();
     if (aRv.Failed()) return false;

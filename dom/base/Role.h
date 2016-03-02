@@ -9,8 +9,6 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsWrapperCache.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsIDocument.h"
@@ -52,13 +50,8 @@ private:
 typedef nsTArray<nsString> PrincipalsArray;
 typedef nsTArray<COWLPrincipal> PrincipalArray;
 
-class Role final : public nsISupports
-                     , public nsWrapperCache
+class Role final
 {
-public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Role)
-
 protected:
   ~Role();
 
@@ -70,24 +63,14 @@ public:
 
   Role* GetParentObject() const; //FIXME
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+  bool Equals(const mozilla::dom::Role& other) const;
 
-  static already_AddRefed<Role> Constructor(const GlobalObject& global,
-                                            const nsAString& principal,
-                                            ErrorResult& aRv);
-  // static already_AddRefed<Role> Constructor(const GlobalObject& global,
-  //                                           const Sequence<nsString >& principals,
-  //                                           ErrorResult& aRv);
+  bool Subsumes(const mozilla::dom::Role& other) const;
 
-  bool Equals(mozilla::dom::Role& other);
+  Role* Or(nsIPrincipal* principal, ErrorResult& aRv);
+  Role* Or(mozilla::dom::Role& other, ErrorResult& aRv);
 
-  bool Subsumes(mozilla::dom::Role& other);
-
-  // already_AddRefed<Role> Or(const nsAString& principal, ErrorResult& aRv);
-  already_AddRefed<Role> Or(nsIPrincipal* principal, ErrorResult& aRv);
-  already_AddRefed<Role> Or(mozilla::dom::Role& other, ErrorResult& aRv);
-
-  already_AddRefed<Role> Clone(ErrorResult &aRv) const;
+  Role* Clone(ErrorResult &aRv) const;
 
   void Stringify(nsString& retval);
 
