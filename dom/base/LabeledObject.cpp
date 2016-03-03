@@ -24,10 +24,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(LabeledObject)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-LabeledObject::LabeledObject(JSObject* obj, Label& confidentiality, Label& integrity)
+LabeledObject::LabeledObject(JS::Handle<JS::Value> objVal, Label& confidentiality, Label& integrity)
   : mConfidentiality(&confidentiality)
   , mIntegrity(&integrity)
-  , mObj(obj)
+  , mObj(objVal)
 {
 
 }
@@ -86,9 +86,14 @@ LabeledObject::Constructor(const GlobalObject& global,
     return nullptr;
   }
 
+  JS::RootedValue objVal(cx, JS::ObjectValue(*obj));
+  JS::RootedValue objectClone(cx);
+  // TODO could possibly fail, handle that
+  JS_StructuredClone(cx, objVal, &objectClone, nullptr, nullptr);
+
   // see label and so on which should be contained in CILABELS
   // perform a write check
-  RefPtr<LabeledObject> labeledObject = new LabeledObject(obj, *confidentiality, *integrity);
+  RefPtr<LabeledObject> labeledObject = new LabeledObject(objectClone, *confidentiality, *integrity);
 
   // RefPtr<Label> privacy = COWL::GetConfidentialityLabel(global, cx, aRv);
   // return Constructor(global, cx, blob, *privacy, *trust, aRv);
@@ -150,9 +155,16 @@ LabeledObject::Clone(JSContext* cx, const CILabel& labels, ErrorResult &aRv) con
     return nullptr;
   }
 
+  // Ned to create a rooted value which is needed for JS::Handle used as function param?
+  // JS::RootedValue objVal(cx, mObj);
+  JS::RootedValue objVal(cx, mObj);
+  JS::RootedValue objectClone(cx);
+  // TODO could possibly fail, handle that
+  JS_StructuredClone(cx, objVal, &objectClone, nullptr, nullptr);
+
 
   // TODO, make sure that mObj is actually copied?
-  RefPtr<LabeledObject> labeledObject = new LabeledObject(mObj, *newConf, *newInt);
+  RefPtr<LabeledObject> labeledObject = new LabeledObject(objectClone, *newConf, *newInt);
 
   return labeledObject.forget();
 }
@@ -188,7 +200,7 @@ LabeledObject::GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> re
 
   xpc::cowl::SetCompartmentIntegrityLabel(compartment, newIntLabel);
 
-  retval.set(mObj);
+  retval.set(&mObj.toObject());
 }
 
 bool
@@ -241,8 +253,14 @@ LabeledObject::ReadStructuredClone(JSContext* cx,
   integrity = integrity->Clone(aRv);
   if (aRv.Failed()) return nullptr;
 
+  // Ned to create a rooted value which is needed for JS::Handle used as function param?
+  JS::RootedValue objVal(cx, labeledObject->GetObj());
+  JS::RootedValue objectClone(cx);
+  // TODO could possibly fail, handle that,
+  JS_StructuredClone(cx, objVal, &objectClone, nullptr, nullptr);
+  // could try do call constructor and do everything there instead, construct global?
   RefPtr<LabeledObject> b  =
-    new LabeledObject(labeledObject->GetObj(), *(confidentiality.get()), *(integrity.get()));
+    new LabeledObject(objectClone, *(confidentiality.get()), *(integrity.get()));
 
   return b->WrapObject(cx, nullptr); // TODO, acceptable with nullptr here?
 }

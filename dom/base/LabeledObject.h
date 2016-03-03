@@ -23,7 +23,7 @@ protected:
   ~LabeledObject() { }
 
 public:
-  LabeledObject(JSObject* obj, Label& confidentiality, Label& integrity);
+  LabeledObject(JS::Handle<JS::Value> objVal, Label& confidentiality, Label& integrity);
 
 
   LabeledObject* GetParentObject() const
@@ -55,10 +55,10 @@ public: // Internal
   static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
 
 private:
-  JSObject* GetObj() { return mObj; };
+  JS::Value GetObj() { return mObj; };
   RefPtr<Label> mConfidentiality;
   RefPtr<Label> mIntegrity;
-  JSObject* mObj;
+  JS::Heap<JS::Value> mObj;
 };
 
 } // namespace dom
