@@ -12,7 +12,7 @@
 namespace mozilla {
 namespace dom {
 
-enum class PrincipalState
+enum class COWLPrincipalType
 {
   APP_PRINCIPAL,
   UNIQUE_PRINCIPAL,
@@ -24,7 +24,7 @@ class COWLParser
 {
 
 public:
-  static PrincipalState validateFormat(const nsAString& principal);
+  static COWLPrincipalType validateFormat(const nsAString& principal);
 
 private:
   COWLParser(const nsAString &principal);
@@ -44,7 +44,7 @@ private:
   bool hostSource();
   bool uniquePrincipal();
   bool appPrincipal();
-  PrincipalState principalExpression();
+  COWLPrincipalType principalExpression();
 
   bool subPath();                 // helper function to parse paths
 

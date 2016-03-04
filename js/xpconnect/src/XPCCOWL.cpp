@@ -10,7 +10,6 @@
 #include "jsfriendapi.h"
 #include "mozilla/dom/COWL.h"
 #include "mozilla/dom/Label.h"
-#include "mozilla/dom/Role.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsDocument.h"
 #include "nsSandboxFlags.h"
@@ -58,9 +57,14 @@ EnableCompartmentConfinement(JSCompartment *compartment)
   // we're not "copying" the principal since the principal may be a
   // null principal (iframe sandbox) and thus not a codebase principal
   nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
-  Role* privRole = new Role(privPrin);
+
   ErrorResult aRv;
-  RefPtr<Label> privileges = new Label(*privRole, aRv);
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(privPrin, aRv);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+
+
+  // Role* privRole = new Role(privPrin);
+  RefPtr<Label> privileges = new Label(newDSet, aRv);
   MOZ_ASSERT(privileges);
   COWL_CONFIG(compartment).SetPrivileges(privileges);
 
@@ -185,7 +189,7 @@ LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
   if (!isTopLevelBrowsingContext) return false;
   // calculate effective label
   RefPtr<Label> effectiveLabel = confidentiality.Downgrade(*privs);
-  RoleArray *newLabelRoles = effectiveLabel->GetDirectRoles();
+  DisjunctionSetArray *newLabelRoles = effectiveLabel->GetDirectRoles();
   // contains more than one disjunctive set
   if (newLabelRoles->Length() > 1) {
     return true;
@@ -193,8 +197,8 @@ LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
 
   // the disjuntive set needs to contain a originprincipal
   if (newLabelRoles->Length() == 1) {
-    Role* role = newLabelRoles->ElementAt(0);
-    if (!role->ContainsOriginPrincipal()) {
+    DisjunctionSet& role = newLabelRoles->ElementAt(0);
+    if (!DisjunctionSetUtils::ContainsOriginPrincipal(role)) {
       return true;
     }
   }
@@ -319,8 +323,11 @@ GuardRead(JSCompartment *compartment,
   } else {
     // compartment is not confined
     nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
-    Role* privRole = new Role(privPrin);
-    compConfidentiality = new Label(*privRole, aRv);
+    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(privPrin, aRv);
+    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+
+    // Role* privRole = new Role(privPrin);
+    compConfidentiality = new Label(newDSet, aRv);
     compIntegrity   = new Label();
     if (aRv.Failed()) return false;
   }

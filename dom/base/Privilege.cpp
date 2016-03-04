@@ -83,10 +83,7 @@ Privilege::FreshPrivilege(const GlobalObject& global, ErrorResult& aRv)
 
   nsAutoCString uuidPrincipal = NS_LITERAL_CSTRING("unique:") +  baseDomain;
 
-  Role* role = new Role(NS_ConvertUTF8toUTF16(uuidPrincipal), aRv);
-  if (aRv.Failed()) return nullptr;
-
-  RefPtr<Label> label = new Label(*role, aRv);
+  RefPtr<Label> label = Label::Constructor(global, NS_ConvertUTF8toUTF16(uuidPrincipal), aRv);
   if (aRv.Failed()) return nullptr;
 
   RefPtr<Privilege> priv = new Privilege(*label);

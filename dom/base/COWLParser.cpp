@@ -429,23 +429,23 @@ COWLParser::appPrincipal()
   return atEnd();
 }
 
-PrincipalState
+COWLPrincipalType
 COWLParser::principalExpression()
 {
 
   // check if equals to self
-  if (mCurToken.EqualsASCII("'self'")) return PrincipalState::ORIGIN_PRINCIPAL;
+  if (mCurToken.EqualsASCII("'self'")) return COWLPrincipalType::ORIGIN_PRINCIPAL;
 
   resetCurChar(mCurToken);
 
   if (uniquePrincipal()) {
-    return PrincipalState::UNIQUE_PRINCIPAL;
+    return COWLPrincipalType::UNIQUE_PRINCIPAL;
   }
 
   resetCurChar(mCurToken);
 
   if (appPrincipal()) {
-    return PrincipalState::APP_PRINCIPAL;
+    return COWLPrincipalType::APP_PRINCIPAL;
   }
 
   resetCurChar(mCurToken);
@@ -460,13 +460,13 @@ COWLParser::principalExpression()
   bool schemePrefix = schemeSource();
   if(schemePrefix) {
     if (atEnd()) {
-      return PrincipalState::INVALID_PRINCIPAL;
+      return COWLPrincipalType::INVALID_PRINCIPAL;
     }
 
     // If mCurToken provides not only a scheme, but also a host, we have to check
     // if two slashes follow the scheme.
     if (!accept(SLASH) || !accept(SLASH)) {
-      return PrincipalState::INVALID_PRINCIPAL;
+      return COWLPrincipalType::INVALID_PRINCIPAL;
     }
   }
   // Calling resetCurValue allows us to keep pointers for mCurChar and mEndChar
@@ -484,13 +484,13 @@ COWLParser::principalExpression()
   // Trying to create a new nsCSPHost.
   if (hostSource()) {
     // Do not forget to set the parsed scheme.
-    return PrincipalState::ORIGIN_PRINCIPAL;
+    return COWLPrincipalType::ORIGIN_PRINCIPAL;
   }
   // Error was reported in hostSource()
-  return PrincipalState::INVALID_PRINCIPAL;
+  return COWLPrincipalType::INVALID_PRINCIPAL;
 }
 
-PrincipalState
+COWLPrincipalType
 COWLParser::validateFormat(const nsAString& principal)
 {
   COWLParser parser(principal);

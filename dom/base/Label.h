@@ -9,12 +9,12 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/dom/Role.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsIDocument.h"
+#include "mozilla/dom/COWLParser.h"
 
 struct JSContext;
 
@@ -23,7 +23,35 @@ namespace dom {
 
   class Privilege;
 
-typedef nsTArray<mozilla::dom::Role*> RoleArray;
+// TODO
+// subclass, split into origin etc, then perform normalization and so on here...
+class COWLPrincipal
+{
+public:
+  COWLPrincipal(const nsAString& principal, COWLPrincipalType principalType)
+    : mPrincipal(principal), mPrincipalType(principalType)
+  {
+  }
+
+  void Stringify(nsString& retval) const
+  {
+    retval.Append(mPrincipal);
+  }
+
+
+  bool IsOriginPrincipal() const
+  {
+    return mPrincipalType == COWLPrincipalType::ORIGIN_PRINCIPAL;
+  }
+
+private:
+  nsString mPrincipal;
+  COWLPrincipalType mPrincipalType;
+
+};
+
+typedef nsTArray<COWLPrincipal> DisjunctionSet;
+typedef nsTArray<DisjunctionSet> DisjunctionSetArray;
 
 class Label final : public nsISupports
                       , public nsWrapperCache
@@ -38,7 +66,7 @@ protected:
 
 public:
   Label();
-  Label(mozilla::dom::Role &role, ErrorResult &aRv);
+  Label(DisjunctionSet &dset, ErrorResult &aRv);
 
 
   Label* GetParentObject() const;//FIXME
@@ -60,11 +88,11 @@ public:
   bool Subsumes(const mozilla::dom::Label& other);
 
   already_AddRefed<Label> And(const nsAString& principal, ErrorResult& aRv);
-  already_AddRefed<Label> And(mozilla::dom::Role& role, ErrorResult& aRv);
+  already_AddRefed<Label> And(DisjunctionSet& role, ErrorResult& aRv);
   already_AddRefed<Label> And(mozilla::dom::Label& other, ErrorResult& aRv);
 
   already_AddRefed<Label> Or(const nsAString& principal, ErrorResult& aRv);
-  already_AddRefed<Label> Or(mozilla::dom::Role& role, ErrorResult& aRv);
+  already_AddRefed<Label> Or(DisjunctionSet& role, ErrorResult& aRv);
   already_AddRefed<Label> Or(mozilla::dom::Label& other, ErrorResult& aRv);
 
   // TODO: add a version that returns Label
@@ -78,7 +106,7 @@ public:
 
 public: // C++ only:
   // bool Subsumes(nsIPrincipal* priv, const mozilla::dom::Label& other);
-  bool Subsumes(const mozilla::dom::Role& role, const mozilla::dom::Label& other);
+  bool Subsumes(const DisjunctionSet& role, const mozilla::dom::Label& other);
   bool Subsumes(const mozilla::dom::Label& privs, const mozilla::dom::Label& other);
 
   already_AddRefed<Label> Downgrade(mozilla::dom::Label& privilegeLabel);
@@ -86,29 +114,57 @@ public: // C++ only:
 
   //TODO: const these:
   void _And(nsIPrincipal *p, ErrorResult& aRv);
-  void _And(mozilla::dom::Role& role, ErrorResult& aRv);
+  void _And(DisjunctionSet& role, ErrorResult& aRv);
   void _And(mozilla::dom::Label& label, ErrorResult& aRv);
-  void _Or(mozilla::dom::Role& role, ErrorResult& aRv);
+  void _Or(DisjunctionSet& role, ErrorResult& aRv);
   void _Or(mozilla::dom::Label& label, ErrorResult& aRv);
+
+  void Stringify(DisjunctionSet& dset, nsString& retval);
 
 
   // Get principal if label is singleton
   // already_AddRefed<nsIPrincipal> GetPrincipalIfSingleton() const;
-  PrincipalArray* GetPrincipalsIfSingleton() const;
+  // DisjunctionSet* GetPrincipalsIfSingleton() const;
+
 
 private:
 
-  void InternalAnd(mozilla::dom::Role& role, ErrorResult* aRv = nullptr,
+  void InternalAnd(DisjunctionSet& role, ErrorResult* aRv = nullptr,
                    bool clone = false);
 
 public: // XXX TODO make private, unsafe
-  RoleArray* GetDirectRoles()
+  DisjunctionSetArray* GetDirectRoles()
   {
     return &mRoles;
   }
 
 private:
-  RoleArray mRoles;
+  DisjunctionSetArray mRoles;
+
+};
+
+// Util functions
+class DisjunctionSetUtils {
+
+public:
+  static DisjunctionSet ConstructDset(COWLPrincipal& principal);
+  static DisjunctionSet CloneDset(const DisjunctionSet& dset);
+
+  static bool ContainsOriginPrincipal(const DisjunctionSet& dset);
+
+  static bool Subsumes(const DisjunctionSet& dset1, const DisjunctionSet& dset2);
+  static bool Equals(const DisjunctionSet& dset1, const DisjunctionSet& dset2);
+
+};
+
+class COWLPrincipalUtils {
+
+public:
+  static COWLPrincipal ConstructPrincipal(const nsAString& principal, ErrorResult& aRv);
+  static COWLPrincipal ConstructPrincipal(nsIPrincipal *principal, ErrorResult& aRv);
+
+private:
+  static COWLPrincipal ConstructOriginPrincipal(const nsAString& principal);
 
 };
 
@@ -117,31 +173,51 @@ private:
 class RoleComparator {
 
 public:
-  bool Equals(const Role* r1,
-              const Role* r2) const
+  bool Equals(const DisjunctionSet& r1,
+              const DisjunctionSet& r2) const
   {
-    return r1->Equals(*r2);
+    return DisjunctionSetUtils::Equals(r1, r2);
   }
 };
 
 class RoleSubsumeComparator {
 
 public:
-  bool Equals(const Role* r1,
-              const Role* r2) const
+  bool Equals(const DisjunctionSet& r1,
+              const DisjunctionSet& r2) const
   {
-    return r1->Subsumes(*r2);
+    return DisjunctionSetUtils::Subsumes(r1, r2);
   }
 };
 
 class RoleSubsumeInvComparator {
 
 public:
-  bool Equals(const Role* r1,
-              const Role* r2) const
+  bool Equals(const DisjunctionSet& r1,
+              const DisjunctionSet& r2) const
   {
-    return r2->Subsumes(*r1);
+    return DisjunctionSetUtils::Subsumes(r2, r1);
   }
+};
+
+class PrincipalComparator {
+
+public:
+  int Compare(const COWLPrincipal& p1,
+              const COWLPrincipal& p2) const;
+
+  bool Equals(const COWLPrincipal& p1,
+              const COWLPrincipal& p2) const
+  {
+    return Compare(p1,p2) == 0;
+  }
+
+  bool LessThan(const COWLPrincipal& p1,
+                const COWLPrincipal& p2) const
+  {
+    return Compare(p1,p2) < 0;
+  }
+
 };
 
 } // namespace dom

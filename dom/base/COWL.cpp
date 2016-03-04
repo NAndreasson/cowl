@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/COWL.h"
 #include "mozilla/dom/COWLBinding.h"
-#include "mozilla/dom/RoleBinding.h"
 #include "mozilla/dom/LabelBinding.h"
 #include "mozilla/dom/PrivilegeBinding.h"
 #include "xpcprivate.h"

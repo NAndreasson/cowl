@@ -26,9 +26,9 @@ Label::Label()
 {
 }
 
-Label::Label(mozilla::dom::Role &role, ErrorResult &aRv)
+Label::Label(DisjunctionSet &dset, ErrorResult &aRv)
 {
-  _And(role,aRv);
+  _And(dset,aRv);
 }
 
 Label::~Label()
@@ -62,38 +62,15 @@ already_AddRefed<Label>
 Label::Constructor(const GlobalObject& global, const nsAString& principal,
                    ErrorResult& aRv)
 {
-  Role* role = new Role(principal, aRv);
-  if (aRv.Failed()) return nullptr;
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
 
-  RefPtr<Label> label = new Label(*role, aRv);
+  RefPtr<Label> label = new Label(newDSet, aRv);
   if (aRv.Failed())
     return nullptr;
   return label.forget();
 }
 
-bool
-Label::Equals(mozilla::dom::Label& other)
-{
-  // Break out early if the other and this are the same.
-  if (&other == this)
-    return true;
-
-  RoleArray *otherRoles = other.GetDirectRoles();
-
-  // The other label is of a different size.
-  if (otherRoles->Length() != mRoles.Length())
-    return false;
-
-  RoleComparator cmp;
-  for (unsigned i = 0; i<mRoles.Length(); ++i) {
-    /* This label contains a role that the other label does not, hence
-     * they cannot be equal. */
-    if (!otherRoles->Contains(mRoles[i],cmp))
-      return false;
-  }
-
-  return true;
-}
 
 bool
 Label::Subsumes(const mozilla::dom::Label& other, const Optional<NonNull<Privilege>>& priv)
@@ -113,7 +90,7 @@ Label::Subsumes(const mozilla::dom::Label& other)
   if (&other == this)
     return true;
 
-  RoleArray *otherRoles =
+  DisjunctionSetArray *otherRoles =
     const_cast<mozilla::dom::Label&>(other).GetDirectRoles();
 
   /* There are more roles in the other formula, this label cannot
@@ -135,15 +112,14 @@ Label::Subsumes(const mozilla::dom::Label& other)
 already_AddRefed<Label>
 Label::And(const nsAString& principal, ErrorResult& aRv)
 {
-  Role* role = new Role(principal, aRv);
-  if (aRv.Failed())
-    return nullptr;
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
 
   RefPtr<Label> _this = Clone(aRv);
   if (aRv.Failed())
     return nullptr;
 
-  _this->_And(*role, aRv);
+  _this->_And(newDSet, aRv);
   if (aRv.Failed())
     return nullptr;
 
@@ -151,7 +127,7 @@ Label::And(const nsAString& principal, ErrorResult& aRv)
 }
 
 already_AddRefed<Label>
-Label::And(mozilla::dom::Role& role, ErrorResult& aRv)
+Label::And(DisjunctionSet& role, ErrorResult& aRv)
 {
   RefPtr<Label> _this = Clone(aRv);
   if (aRv.Failed())
@@ -185,11 +161,14 @@ Label::Or(const nsAString& principal, ErrorResult& aRv)
   if (aRv.Failed())
     return nullptr;
 
-  Role* role = new Role(principal, aRv);
-  if (aRv.Failed())
-    return nullptr;
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
 
-  _this->_Or(*role, aRv);
+  // Role* role = new Role(principal, aRv);
+  // if (aRv.Failed())
+  //   return nullptr;
+
+  _this->_Or(newDSet, aRv);
   if (aRv.Failed())
     return nullptr;
 
@@ -198,7 +177,7 @@ Label::Or(const nsAString& principal, ErrorResult& aRv)
 
 
 already_AddRefed<Label>
-Label::Or(mozilla::dom::Role& role, ErrorResult& aRv)
+Label::Or(DisjunctionSet& role, ErrorResult& aRv)
 {
   RefPtr<Label> _this = Clone(aRv);
   if (aRv.Failed())
@@ -241,12 +220,11 @@ Label::Clone(ErrorResult &aRv) const
     return nullptr;
   }
 
-  RoleArray *newRoles = label->GetDirectRoles();
+  DisjunctionSetArray *newRoles = label->GetDirectRoles();
   for (unsigned i = 0; i < mRoles.Length(); i++) {
-    Role* role = mRoles[i]->Clone(aRv);
-    if (aRv.Failed())
-      return nullptr;
-    newRoles->InsertElementAt(i, role);
+    DisjunctionSet dset = DisjunctionSetUtils::CloneDset(mRoles[i]);
+    // Role* role = mRoles[i]->Clone(aRv);
+    newRoles->InsertElementAt(i, dset);
   }
 
   return label.forget();
@@ -264,11 +242,11 @@ Label::Downgrade(mozilla::dom::Label& privilegeLabel)
   ErrorResult aRv;
   int mRolesLength = mRoles.Length();
   for (unsigned i = 0; i < mRolesLength; i++) {
-    RefPtr<Label> curr = new Label(*mRoles[i], aRv);
+    RefPtr<Label> curr = new Label(mRoles[i], aRv);
 
     if (!privilegeLabel.Subsumes(*curr)) {
       // use the internal AND mRoles[i]
-      newLabel->_And(*mRoles[i], aRv);
+      newLabel->_And(mRoles[i], aRv);
     }
 
   }
@@ -292,7 +270,7 @@ Label::Stringify(nsString& retval)
 
   for (unsigned i = 0; i < mRolesLength; i++) {
     nsAutoString role;
-    mRoles[i]->Stringify(role);
+    Stringify(mRoles[i], role);
     retval.Append(role);
     if (i != (mRoles.Length() -1))
       retval.Append(NS_LITERAL_STRING(") AND ("));
@@ -300,6 +278,25 @@ Label::Stringify(nsString& retval)
 
   if (mRolesLength > 1) retval.Append(NS_LITERAL_STRING(")"));
   else retval.Append(NS_LITERAL_STRING(""));
+}
+
+void
+Label::Stringify(DisjunctionSet& dset, nsString& retval)
+{
+  retval = NS_LITERAL_STRING("");
+
+  for (unsigned i=0; i < dset.Length(); ++i) {
+    COWLPrincipal& principal = dset[i];
+    nsAutoString principalString;
+    principal.Stringify(principalString);
+
+    retval.Append(principalString);
+
+    if (i != (dset.Length() - 1))
+      retval.Append(NS_LITERAL_STRING(" OR "));
+  }
+
+  retval.Append(NS_LITERAL_STRING(""));
 }
 
 // bool
@@ -313,7 +310,7 @@ Label::Stringify(nsString& retval)
 // }
 
 bool
-Label::Subsumes(const mozilla::dom::Role &role,
+Label::Subsumes(const DisjunctionSet &role,
                 const mozilla::dom::Label& other)
 {
   // Break out early if the other and this are the same.
@@ -321,12 +318,13 @@ Label::Subsumes(const mozilla::dom::Role &role,
   if (&other == this || other.IsEmpty())
     return true;
 
-  if (role.IsEmpty())
+  // if empty
+  if (!role.Length())
     return Subsumes(other);
 
   ErrorResult aRv;
   RefPtr<Label> privs =
-    new Label(const_cast<mozilla::dom::Role &>(role), aRv);
+    new Label(const_cast<DisjunctionSet&>(role), aRv);
 
   if (aRv.Failed())
     return Subsumes(other);
@@ -356,12 +354,16 @@ Label::Subsumes(const mozilla::dom::Label &privs,
 void
 Label::_And(nsIPrincipal *p, ErrorResult& aRv)
 {
-  Role* role = new Role(p);
-  _And(*role, aRv);
+  // Role* role = new Role(p);
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(p, aRv);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+
+
+  _And(newDSet, aRv);
 }
 
 void
-Label::_And(mozilla::dom::Role& role, ErrorResult& aRv)
+Label::_And(DisjunctionSet& role, ErrorResult& aRv)
 {
   InternalAnd(role, &aRv, true);
 }
@@ -369,15 +371,15 @@ Label::_And(mozilla::dom::Role& role, ErrorResult& aRv)
 void
 Label::_And(mozilla::dom::Label& label, ErrorResult& aRv)
 {
-  RoleArray *otherRoles = label.GetDirectRoles();
+  DisjunctionSetArray *otherRoles = label.GetDirectRoles();
   for (unsigned i = 0; i < otherRoles->Length(); ++i) {
-    _And(*(otherRoles->ElementAt(i)), aRv);
+    _And(otherRoles->ElementAt(i), aRv);
     if (aRv.Failed()) return;
   }
 }
 
 void
-Label::_Or(mozilla::dom::Role& role, ErrorResult& aRv)
+Label::_Or(DisjunctionSet& role, ErrorResult& aRv)
 {
 
   // This label is empty, disjunction should not change it.
@@ -390,11 +392,20 @@ Label::_Or(mozilla::dom::Role& role, ErrorResult& aRv)
 
   Label tmpLabel;
 
-  for (unsigned i = 0; i < mRoles.Length(); ++i) {
-    Role* nRole = mRoles.ElementAt(i);
-    nRole->_Or(role);
+  PrincipalComparator cmp;
 
-    tmpLabel.InternalAnd(*nRole);
+  for (unsigned i = 0; i < mRoles.Length(); ++i) {
+    DisjunctionSet& nRole = mRoles.ElementAt(i);
+    for (unsigned j = 0; j < role.Length(); j++) {
+      COWLPrincipal& principal = role.ElementAt(j);
+      if(!nRole.Contains(principal, cmp))
+        nRole.InsertElementSorted(principal, cmp);
+    }
+    // go through each principal ... and if does nt exist ... in the current set, add?
+    // append to
+    // nRole->_Or(role);
+
+    tmpLabel.InternalAnd(nRole);
   }
   // copy assignment
   mRoles = *(tmpLabel.GetDirectRoles());
@@ -403,9 +414,9 @@ Label::_Or(mozilla::dom::Role& role, ErrorResult& aRv)
 void
 Label::_Or(mozilla::dom::Label& label, ErrorResult& aRv)
 {
-  RoleArray *otherRoles = label.GetDirectRoles();
+  DisjunctionSetArray *otherRoles = label.GetDirectRoles();
   for (unsigned i = 0; i < otherRoles->Length(); ++i) {
-    _Or(*(otherRoles->ElementAt(i)), aRv);
+    _Or(otherRoles->ElementAt(i), aRv);
     if (aRv.Failed()) return;
   }
 }
@@ -415,58 +426,218 @@ Label::Reduce(mozilla::dom::Label &label)
 {
   if (label.IsEmpty()) return;
 
-  RoleArray *roles = const_cast<mozilla::dom::Label&>(label).GetDirectRoles();
+  DisjunctionSetArray *roles = const_cast<mozilla::dom::Label&>(label).GetDirectRoles();
   RoleSubsumeInvComparator cmp;
   for (unsigned i = 0; i < roles->Length(); ++i) {
     while (mRoles.RemoveElement(roles->ElementAt(i), cmp)) ;
   }
 }
 
-// already_AddRefed<nsIPrincipal>
-// Label::GetPrincipalIfSingleton() const
-// {
-//   PrincipalsArray* ps = GetPrincipalsIfSingleton();
-
-//   if (!ps || ps->Length() != 1)
-//     return nullptr;
-
-//   nsCOMPtr<nsIPrincipal> p = ps->ElementAt(0);
-//   return p.forget();
-// }
-
-PrincipalArray*
-Label::GetPrincipalsIfSingleton() const
-{
-  if (mRoles.Length() != 1)
-    return nullptr;
-  return mRoles.ElementAt(0)->GetDirectPrincipals();
-}
-
 //
 // Internals
 //
 
+
+bool
+Label::Equals(mozilla::dom::Label& other)
+{
+  // Break out early if the other and this are the same.
+  if (&other == this)
+    return true;
+
+  DisjunctionSetArray *otherRoles = other.GetDirectRoles();
+
+  // The other label is of a different size.
+  if (otherRoles->Length() != mRoles.Length())
+    return false;
+
+  RoleComparator cmp;
+  for (unsigned i = 0; i<mRoles.Length(); ++i) {
+    /* This label contains a role that the other label does not, hence
+     * they cannot be equal. */
+    if (!otherRoles->Contains(mRoles[i],cmp))
+      return false;
+  }
+
+  return true;
+}
+
+
 void
-Label::InternalAnd(mozilla::dom::Role& role, ErrorResult* aRv, bool clone)
+Label::InternalAnd(DisjunctionSet& role, ErrorResult* aRv, bool clone)
 {
   /* If there is no role in this label that subsumes |role|, append it
    * and remove any roles it subsumes.  An empty role is ignored.  */
-  if (!mRoles.Contains(&role, RoleSubsumeComparator())) {
+  if (!mRoles.Contains(role, RoleSubsumeComparator())) {
     RoleSubsumeInvComparator cmp;
 
     // Remove any elements that this role subsumes
-    while(mRoles.RemoveElement(&role, cmp)) ;
+    while(mRoles.RemoveElement(role, cmp)) ;
 
     if (clone && aRv) {
-      mozilla::dom::Role* roleCopy = role.Clone(*aRv);
-      if(!roleCopy)
-        return;
+      DisjunctionSet copyDset = DisjunctionSetUtils::CloneDset(role);
 
-      mRoles.AppendElement(roleCopy);
+      mRoles.AppendElement(copyDset);
     } else {
-      mRoles.AppendElement(&role);
+      mRoles.AppendElement(role);
     }
   }
+}
+
+// HELPERS
+
+COWLPrincipal
+COWLPrincipalUtils::ConstructPrincipal(const nsAString& principal, ErrorResult& aRv)
+{
+  COWLPrincipalType principalState = COWLParser::validateFormat(principal);
+
+  if (principalState == COWLPrincipalType::INVALID_PRINCIPAL) {
+    aRv.ThrowTypeError<MSG_INVALID_PRINCIPAL>(principal);
+  }
+
+  if (principalState != COWLPrincipalType::ORIGIN_PRINCIPAL) {
+    COWLPrincipal newPrincipal(principal, principalState);
+    return newPrincipal;
+  } else {
+    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructOriginPrincipal(principal);
+    return newPrincipal;
+  }
+
+}
+
+COWLPrincipal
+COWLPrincipalUtils::ConstructPrincipal(nsIPrincipal *principal, ErrorResult& aRv)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = principal->GetURI(getter_AddRefs(uri));
+
+  nsAutoCString origin1;
+  uri->GetAsciiSpec(origin1);
+
+  rv = principal->GetOrigin(origin1);
+
+  // create a new Disjunction set...
+  // COWLPrincipal newPrincipal(, COWLPrincipalType::ORIGIN_PRINCIPAL);
+
+  return COWLPrincipalUtils::ConstructOriginPrincipal(NS_ConvertASCIItoUTF16(origin1));
+}
+
+COWLPrincipal
+COWLPrincipalUtils::ConstructOriginPrincipal(const nsAString& principal)
+{
+  nsAutoString origin;
+  origin.Assign(principal);
+  // try to normalize origin, if that fails use passed in string.
+  nsresult rv;
+  // Create URI
+  nsCOMPtr<nsIURI> uri;
+  rv = NS_NewURI(getter_AddRefs(uri), principal);
+
+  if (NS_SUCCEEDED(rv)) {
+    nsAutoCString tmpOrigin;
+    rv = uri->GetAsciiSpec(tmpOrigin);
+    CopyASCIItoUTF16(tmpOrigin, origin);
+  }
+
+  COWLPrincipal newPrincipal(origin, COWLPrincipalType::ORIGIN_PRINCIPAL);
+  return newPrincipal;
+}
+
+
+DisjunctionSet
+DisjunctionSetUtils::ConstructDset(COWLPrincipal& principal)
+{
+  DisjunctionSet dset;
+  // insert into dset...
+  PrincipalComparator cmp;
+  dset.InsertElementSorted(principal, cmp);
+  return dset;
+}
+
+DisjunctionSet
+DisjunctionSetUtils::CloneDset(const DisjunctionSet& dset)
+{
+  DisjunctionSet copyDset;
+  for (unsigned i = 0; i < dset.Length(); ++i) {
+    copyDset.InsertElementAt(i,  dset[i]);
+  }
+
+  return copyDset;
+}
+
+bool
+DisjunctionSetUtils::ContainsOriginPrincipal(const DisjunctionSet& dset)
+{
+  // go through..
+  bool foundOriginPrincipal = false;
+
+  for (unsigned i = 0; i < dset.Length(); ++i) {
+    if (dset[i].IsOriginPrincipal()) {
+      foundOriginPrincipal = true;
+      break;
+    }
+  }
+
+  return foundOriginPrincipal;
+}
+
+bool
+DisjunctionSetUtils::Equals(const DisjunctionSet& dset1, const DisjunctionSet& dset2)
+{
+  // Break out early if the other and this are the same.
+  if (&dset1 == &dset2)
+    return true;
+
+  // The other role is of a different size, can't be equal.
+  if (dset2.Length() != dset1.Length())
+    return false;
+
+  PrincipalComparator cmp;
+  for (unsigned i=0; i< dset1.Length(); ++i) {
+    /* This role contains a principal that the other role does not,
+     * hence it cannot be equal to it. */
+    if(!cmp.Equals(dset1[i], dset2[i]))
+      return false;
+  }
+
+  return true;
+}
+
+bool
+DisjunctionSetUtils::Subsumes(const DisjunctionSet& dset1, const DisjunctionSet& dset2)
+{
+  // Break out early if the other points to this
+  if (&dset1 == &dset2)
+    return true;
+
+  // PrincipalArray *otherPrincipals = const_cast<mozilla::dom::Role&>(other).GetDirectPrincipals();
+
+  // dset2 (Disjunction set) is smaller, dset1 cannot imply (subsume) it.
+  if (dset2.Length() < dset1.Length())
+    return false;
+
+  PrincipalComparator cmp;
+  for (unsigned i=0; i< dset1.Length(); ++i) {
+    /* This role contains a principal that the other role does not,
+     * hence it cannot imply (subsume) it. */
+    if (!dset2.Contains(dset1[i],cmp))
+      return false;
+  }
+
+  return true;
+}
+
+int
+PrincipalComparator::Compare(const COWLPrincipal &p1,
+                                const COWLPrincipal &p2) const
+{
+  nsAutoString p1String;
+  p1.Stringify(p1String);
+  nsAutoString p2String;
+  p2.Stringify(p2String);
+
+  bool res = strcmp(ToNewUTF8String(p1String), ToNewUTF8String(p2String));
+  return res;
 }
 
 
