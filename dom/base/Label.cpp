@@ -164,10 +164,6 @@ Label::Or(const nsAString& principal, ErrorResult& aRv)
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
 
-  // Role* role = new Role(principal, aRv);
-  // if (aRv.Failed())
-  //   return nullptr;
-
   _this->_Or(newDSet, aRv);
   if (aRv.Failed())
     return nullptr;
@@ -270,7 +266,7 @@ Label::Stringify(nsString& retval)
 
   for (unsigned i = 0; i < mRolesLength; i++) {
     nsAutoString role;
-    Stringify(mRoles[i], role);
+    DisjunctionSetUtils::Stringify(mRoles[i], role);
     retval.Append(role);
     if (i != (mRoles.Length() -1))
       retval.Append(NS_LITERAL_STRING(") AND ("));
@@ -279,35 +275,6 @@ Label::Stringify(nsString& retval)
   if (mRolesLength > 1) retval.Append(NS_LITERAL_STRING(")"));
   else retval.Append(NS_LITERAL_STRING(""));
 }
-
-void
-Label::Stringify(DisjunctionSet& dset, nsString& retval)
-{
-  retval = NS_LITERAL_STRING("");
-
-  for (unsigned i=0; i < dset.Length(); ++i) {
-    COWLPrincipal& principal = dset[i];
-    nsAutoString principalString;
-    principal.Stringify(principalString);
-
-    retval.Append(principalString);
-
-    if (i != (dset.Length() - 1))
-      retval.Append(NS_LITERAL_STRING(" OR "));
-  }
-
-  retval.Append(NS_LITERAL_STRING(""));
-}
-
-// bool
-// Label::Subsumes(nsIPrincipal* priv, const mozilla::dom::Label& other)
-// {
-//   if (!priv)
-//     return Subsumes(other);
-
-//   RefPtr<Role> privRole = new Role(priv);
-//   return Subsumes(*privRole,other);
-// }
 
 bool
 Label::Subsumes(const DisjunctionSet &role,
@@ -354,10 +321,8 @@ Label::Subsumes(const mozilla::dom::Label &privs,
 void
 Label::_And(nsIPrincipal *p, ErrorResult& aRv)
 {
-  // Role* role = new Role(p);
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(p, aRv);
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
-
 
   _And(newDSet, aRv);
 }
@@ -392,18 +357,9 @@ Label::_Or(DisjunctionSet& role, ErrorResult& aRv)
 
   Label tmpLabel;
 
-  PrincipalComparator cmp;
-
   for (unsigned i = 0; i < mRoles.Length(); ++i) {
     DisjunctionSet& nRole = mRoles.ElementAt(i);
-    for (unsigned j = 0; j < role.Length(); j++) {
-      COWLPrincipal& principal = role.ElementAt(j);
-      if(!nRole.Contains(principal, cmp))
-        nRole.InsertElementSorted(principal, cmp);
-    }
-    // go through each principal ... and if does nt exist ... in the current set, add?
-    // append to
-    // nRole->_Or(role);
+    DisjunctionSetUtils::Or(nRole, role);
 
     tmpLabel.InternalAnd(nRole);
   }
@@ -436,7 +392,6 @@ Label::Reduce(mozilla::dom::Label &label)
 //
 // Internals
 //
-
 
 bool
 Label::Equals(mozilla::dom::Label& other)
@@ -559,10 +514,22 @@ DisjunctionSetUtils::CloneDset(const DisjunctionSet& dset)
 {
   DisjunctionSet copyDset;
   for (unsigned i = 0; i < dset.Length(); ++i) {
-    copyDset.InsertElementAt(i,  dset[i]);
+    copyDset.InsertElementAt(i, dset[i]);
   }
 
   return copyDset;
+}
+
+void
+DisjunctionSetUtils::Or(DisjunctionSet& dset1, DisjunctionSet& dset2)
+{
+  PrincipalComparator cmp;
+
+  for (unsigned i = 0; i < dset2.Length(); i++) {
+    COWLPrincipal& principal = dset2.ElementAt(i);
+    if(!dset1.Contains(principal, cmp))
+      dset1.InsertElementSorted(principal, cmp);
+  }
 }
 
 bool
@@ -626,6 +593,26 @@ DisjunctionSetUtils::Subsumes(const DisjunctionSet& dset1, const DisjunctionSet&
 
   return true;
 }
+
+void
+DisjunctionSetUtils::Stringify(const DisjunctionSet& dset, nsString& retval)
+{
+  retval = NS_LITERAL_STRING("");
+
+  for (unsigned i=0; i < dset.Length(); ++i) {
+    const COWLPrincipal& principal = dset[i];
+    nsAutoString principalString;
+    principal.Stringify(principalString);
+
+    retval.Append(principalString);
+
+    if (i != (dset.Length() - 1))
+      retval.Append(NS_LITERAL_STRING(" OR "));
+  }
+
+  retval.Append(NS_LITERAL_STRING(""));
+}
+
 
 int
 PrincipalComparator::Compare(const COWLPrincipal &p1,

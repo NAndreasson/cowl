@@ -121,12 +121,6 @@ public: // C++ only:
 
   void Stringify(DisjunctionSet& dset, nsString& retval);
 
-
-  // Get principal if label is singleton
-  // already_AddRefed<nsIPrincipal> GetPrincipalIfSingleton() const;
-  // DisjunctionSet* GetPrincipalsIfSingleton() const;
-
-
 private:
 
   void InternalAnd(DisjunctionSet& role, ErrorResult* aRv = nullptr,
@@ -149,6 +143,10 @@ class DisjunctionSetUtils {
 public:
   static DisjunctionSet ConstructDset(COWLPrincipal& principal);
   static DisjunctionSet CloneDset(const DisjunctionSet& dset);
+
+  static void Or(DisjunctionSet& dset1, DisjunctionSet& dset2);
+
+  static void Stringify(const DisjunctionSet& dset, nsString& retval);
 
   static bool ContainsOriginPrincipal(const DisjunctionSet& dset);
 

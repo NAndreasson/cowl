@@ -78,11 +78,9 @@ Privilege::FreshPrivilege(const GlobalObject& global, ErrorResult& aRv)
 
   // For some reason the UUID is wrapped in {UUID}, remove braces
   // TODO, oneliner with substring
-  baseDomain.Cut(0, 1);
-  baseDomain.Cut(baseDomain.Length() - 1, 1);
+  baseDomain.Cut(0, 1); baseDomain.Cut(baseDomain.Length() - 1, 1);
 
   nsAutoCString uuidPrincipal = NS_LITERAL_CSTRING("unique:") +  baseDomain;
-
   RefPtr<Label> label = Label::Constructor(global, NS_ConvertUTF8toUTF16(uuidPrincipal), aRv);
   if (aRv.Failed()) return nullptr;
 
