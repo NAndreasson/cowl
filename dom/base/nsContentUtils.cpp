@@ -3034,7 +3034,30 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
     *aImageBlockingStatus =
       NS_FAILED(rv) ? nsIContentPolicy::REJECT_REQUEST : decision;
   }
-  return NS_FAILED(rv) ? false : NS_CP_ACCEPTED(decision);
+
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  nsAutoCString origin;
+  aURI->GetAsciiSpec(origin);
+  printf("Check load image from: %s\n", ToNewCString(origin));
+
+  // Perform a COWL
+  // TODO sometimes docObj will be null? Look into
+  JSObject* docObj = aLoadingDocument->GetWrapperPreserveColor();
+  if (docObj) {
+    JSCompartment* aCompartment = js::GetObjectCompartment(docObj);
+    bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
+    if (!canFlowTo) {
+      printf("COULD NOT FLOW TO\n");
+      // is this a reasonable status?
+      *aImageBlockingStatus = nsIContentPolicy::REJECT_REQUEST;
+      return false;
+    }
+  }
+
+  return NS_CP_ACCEPTED(decision);
 }
 
 // static
