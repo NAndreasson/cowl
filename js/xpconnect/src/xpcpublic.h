@@ -625,6 +625,9 @@ DECLARE_GET_LABEL(Privileges);
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *compartment, JSCompartment *source, bool isRead = true);
 
+NS_EXPORT_(bool)
+GuardRead(JSCompartment *compartment, const nsACString& aUri);
+
 // Can information flow to compartment from object labeld with confidentiality andintegrity
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *compartment,

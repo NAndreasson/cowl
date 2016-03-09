@@ -13,6 +13,7 @@
 #include "nsIContentSecurityPolicy.h"
 #include "nsDocument.h"
 #include "nsSandboxFlags.h"
+#include "nsNetUtil.h"
 
 using namespace xpc;
 using namespace JS;
@@ -367,6 +368,49 @@ GuardRead(JSCompartment *compartment,
   return false;
 }
 
+NS_EXPORT_(bool)
+GuardRead(JSCompartment *source, const nsACString& aUri)
+{
+  if (!IsCompartmentConfined(source)) {
+    return true;
+  }
+
+  printf("The compartment is confined\n");
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aUri);
+
+  // print text uri ...
+  nsAutoCString tmpOrigin;
+  rv = uri->GetAsciiSpec(tmpOrigin);
+  printf("Something %s\n", ToNewCString(tmpOrigin));
+
+  RefPtr<Label> compConfidentiality = GetCompartmentConfidentialityLabel(source);
+  RefPtr<Label> compIntegrity = GetCompartmentIntegrityLabel(source);
+  RefPtr<Label> privs   = GetCompartmentPrivileges(source);
+
+  ErrorResult errRes;
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(tmpOrigin), errRes);
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+  RefPtr<Label> uriLabel  = new Label(newDSet, errRes);
+
+  RefPtr<Label> effLabel = compConfidentiality->Downgrade(*privs);
+
+  if (!uriLabel->Subsumes(*effLabel)) {
+    printf("DOES NOT SUBSUME\n");
+    return false;
+  }
+
+  nsAutoString compConfidentialityStr, compIntegrityStr;
+  compConfidentiality->Stringify(compConfidentialityStr);
+  compIntegrity->Stringify(compIntegrityStr);
+
+  printf("Other GuardRead <%s,%s> \n",
+      NS_ConvertUTF16toUTF8(compConfidentialityStr).get(),
+      NS_ConvertUTF16toUTF8(compIntegrityStr).get());
+
+  return true;
+}
 // Check if information can flow from compartment |source| to
 // compartment |compartment|.
 NS_EXPORT_(bool)
