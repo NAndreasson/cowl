@@ -121,6 +121,37 @@ DoCORSChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo,
 }
 
 static nsresult
+DoCOWLSecurityChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
+{
+  nsCOMPtr<nsIURI> channelURI;
+  aChannel->GetURI(getter_AddRefs(channelURI));
+  nsAutoCString origin;
+  channelURI->GetAsciiSpec(origin);
+
+  printf("Reading content from: %s\n", ToNewCString(origin));
+
+  nsCOMPtr<nsIDOMDocument> dommyDoc;
+  aLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc);
+  if (!doc)
+    return NS_OK;
+
+  printf("Found a document\n");
+
+  JSObject* docObj = doc->GetWrapperPreserveColor();
+  JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
+
+
+
+  bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
+  if (!canFlowTo) {
+    nsresult rv = NS_ERROR_FAILURE;
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return NS_OK;
+}
+
+static nsresult
 DoContentSecurityChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo)
 {
   nsContentPolicyType contentPolicyType =
@@ -184,7 +215,7 @@ DoContentSecurityChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo)
       mimeTypeGuess = EmptyCString();
       requestingContext = aLoadInfo->LoadingNode();
       break;
-    }
+      }
 
     case nsIContentPolicy::TYPE_XMLHTTPREQUEST: {
       // alias nsIContentPolicy::TYPE_DATAREQUEST:
@@ -374,6 +405,9 @@ nsContentSecurityManager::doContentSecurityCheck(nsIChannel* aChannel,
   rv = DoContentSecurityChecks(finalChannelURI, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = DoCOWLSecurityChecks(aChannel, loadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   // now lets set the initalSecurityFlag for subsequent calls
   rv = loadInfo->SetInitialSecurityCheckDone(true);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -420,7 +454,7 @@ nsContentSecurityManager::AsyncOnChannelRedirect(nsIChannel* aOldChannel,
       rv = nsContentUtils::GetSecurityManager()->
         CheckLoadURIWithPrincipal(oldPrincipal, newOriginalURI, flags);
   }
-  NS_ENSURE_SUCCESS(rv, rv);  
+  NS_ENSURE_SUCCESS(rv, rv);
 
   aCb->OnRedirectVerifyCallback(NS_OK);
   return NS_OK;
