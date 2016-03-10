@@ -1,0 +1,85 @@
+<script>
+COWL.enable();
+COWL.confidentiality = new Label('http://alice.com/');
+
+var wParent = SpecialPowers.wrap(parent);
+var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+function testConstructor() {
+  var obj = {
+    secret: 'secretvalue'
+  };
+  var labeledObject = new LabeledObject(obj);
+  var label = labeledObject.confidentiality;
+
+  wwParent.ok_wrapper(COWL.confidentiality.equals(label), 'Confidentiality label of labeled object should be set to conf label of current context if not passed');
+
+  // try passing in labeling in ...
+
+  // try to create an object with a lower labeling than the current context, should throw an error
+}
+
+function testInvalidConstructorLabeling() {
+  var obj = {
+    secret: 'secretvalue'
+  };
+
+  try {
+    // try creating an object with "lower labeling" than the current context
+    new LabeledObject(obj, {
+      confidentiality: new Label()
+    });
+    wwParent.ok_wrapper(false, 'Should not be possible to create a labeled object with lower label than the current context');
+  } catch(e) {
+    wwParent.ok_wrapper(true, 'Should not be possible to create a labeled object with lower label than the current context');
+  }
+}
+
+function testRaiseLabelConstructor() {
+  var obj = {
+    secret: 'secretvalue'
+  };
+
+  try {
+    // try creating an object with "lower labeling" than the current context
+    new LabeledObject(obj, {
+      confidentiality: COWL.confidentiality.and('app:user1')
+    });
+    wwParent.ok_wrapper(true, 'Should be possible to create a labeled object with stronger label than the current context');
+  } catch(e) {
+    wwParent.ok_wrapper(false, 'Should not be possible to create a labeled object with stronger label than the current context');
+  }
+}
+
+function testProtectedObject() {
+  var person = {
+    name: 'Joe'
+  };
+  var labeledObject = new LabeledObject(person);
+  person['name'] = 'Mike';
+  var protectedObj = labeledObject.protectedObject;
+
+  wwParent.ok_wrapper(protectedObj['name'] == 'Joe', 'Object passed in constructor should be cloned and not be mutated');
+}
+
+function testProtectedObjectRaise() {
+  var person = { name: 'Joe' };
+
+  var newLabel = COWL.confidentiality.and('app:user1');
+  var labeledObject = new LabeledObject(person, {
+    confidentiality: newLabel
+  });
+
+  // should result in that the context label is raised
+  labeledObject.protectedObject;
+
+  wwParent.ok_wrapper(COWL.confidentiality.equals(newLabel), 'Context label should be raised');
+}
+
+testConstructor();
+testInvalidConstructorLabeling();
+testRaiseLabelConstructor();
+testProtectedObject();
+testProtectedObjectRaise();
+
+</script>
