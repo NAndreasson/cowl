@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug </title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+  <p id="display"></p>
+  <pre id="test">
+
+  <script class="testbody" type="application/javascript">
+  SimpleTest.waitForExplicitFinish();
+
+  var completedTests = 0;
+  var passedTests = 0;
+
+  var externalWindow;
+
+  function ok_wrapper(result, desc) {
+    ok(result, desc);
+
+    completedTests++;
+
+    if (result) {
+      passedTests++;
+    }
+
+    if (completedTests == 1) {
+      SpecialPowers.wrap(externalWindow).close();
+      is(passedTests, completedTests, "There are " + completedTests + " privilege tests that should pass");
+
+      SimpleTest.finish();
+    }
+  }
+
+  // considered a top-level window, see if we can raise labels to a level considered stuck or not
+  externalWindow = window.open("http://example.com/tests/dom/tests/mochitest/cowl/file_toplevelwindow.html");
+
+  </script>
+</pre>
+</body>
+</html>

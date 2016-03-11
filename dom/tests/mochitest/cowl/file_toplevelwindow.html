@@ -1,0 +1,16 @@
+<script>
+  COWL.enable();
+  var aLabel = new Label('http://a.com/');
+  var aAndB = aLabel.and('http://b.com/');
+
+  var wOpener = SpecialPowers.wrap(window.opener);
+  var wwOpener = SpecialPowers.Cu.waiveXrays(wOpener);
+
+  try {
+    COWL.confidentiality = aAndB;
+    wwOpener.ok_wrapper(false, "Top-level browsing context should not be able to get stuck");
+  } catch(e) {
+    wwOpener.ok_wrapper(true, "Top-level browsing context should not be able to get stuck");
+  }
+
+</script>
