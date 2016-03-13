@@ -35,6 +35,74 @@ static const char16_t ATSYMBOL     = '@';
 
 static const uint32_t kSubHostPathCharacterCutoff = 512;
 
+PrincipalExpressionSplitter::PrincipalExpressionSplitter(const char16_t* aStart,
+                               const char16_t* aEnd)
+  : mCurChar(aStart)
+  , mEndChar(aEnd)
+{
+}
+
+PrincipalExpressionSplitter::~PrincipalExpressionSplitter()
+{
+}
+
+void
+PrincipalExpressionSplitter::generateNextToken(const nsAString& delim)
+{
+  int delimLength = delim.Length();
+
+  skipWhiteSpace();
+  bool done = false;
+
+  nsAutoString s;
+
+
+  while (!done && !atEnd()) {
+    if (*mCurChar != ' ') s.Append(*mCurChar++);
+
+    if (atEnd()) {
+      done = true;
+      break;
+    }
+
+    // collect whitespace?
+    nsAutoString ws;
+    while (*mCurChar == ' ') ws.Append(*mCurChar++);
+
+    nsDependentSubstring sub = Substring(mCurChar, mCurChar + delimLength);
+    // TODO, make case insensitive?
+    if (sub.Equals(delim)) {
+      done = true;
+      mCurChar += delimLength;
+    } else {
+      s.Append(ws);
+    }
+
+  }
+
+  mCurToken.Assign(s);
+}
+
+void
+PrincipalExpressionSplitter::generateTokens(const nsAString& delim, nsTArray<nsString>& outTokens)
+{
+  while (!atEnd()) {
+    generateNextToken(delim);
+    outTokens.AppendElement(mCurToken);
+  }
+}
+
+void
+PrincipalExpressionSplitter::splitExpression(const nsAString &principalStr, const nsAString& delim, nsTArray<nsString>& outTokens)
+{
+
+  PrincipalExpressionSplitter tokenizer(principalStr.BeginReading(),
+                           principalStr.EndReading());
+
+  tokenizer.generateTokens(delim, outTokens);
+}
+
+
 COWLParser::COWLParser(const nsAString &principal)
   : mCurChar(nullptr)
   , mEndChar(nullptr)
@@ -497,6 +565,39 @@ COWLParser::validateFormat(const nsAString& principal)
   // construct new Labelparser
   // call parse and return result!
   return parser.principalExpression();
+}
+
+already_AddRefed<Label>
+COWLParser::parsePrincipalExpression(const nsAString& principal)
+{
+  RefPtr<Label> label = new Label();
+
+  /* // copy string and lowercase it? */
+  /* nsAutoString tmpPrincipal(principal); */
+  /* ToLowerCase(tmpPrincipal); */
+
+  // TODO trim principal etc
+
+  nsTArray<nsString> ands;
+  PrincipalExpressionSplitter::splitExpression(principal, NS_LITERAL_STRING("AND"), ands);
+  // TODO special case if only one AND
+
+  RefPtr<Label> orExp = new Label();
+
+  ErrorResult aRv;
+
+  for (nsString ada : ands) {
+    nsTArray<nsString> ors;
+    PrincipalExpressionSplitter::splitExpression(ada, NS_LITERAL_STRING("OR"), ors);
+
+    for (nsString prinTok : ors) {
+      // perform or on orExpr?
+      orExp = orExp->Or(prinTok, aRv);
+    }
+    label = label->And(*orExp, aRv);
+  }
+
+  return label.forget();
 }
 
 }

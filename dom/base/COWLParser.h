@@ -9,8 +9,11 @@
 
 #include "nsString.h"
 
+
 namespace mozilla {
 namespace dom {
+
+class Label;
 
 enum class COWLPrincipalType
 {
@@ -20,11 +23,53 @@ enum class COWLPrincipalType
   INVALID_PRINCIPAL
 };
 
+typedef nsTArray< nsTArray<nsString> > principalExpressions;
+
+class PrincipalExpressionSplitter {
+  public:
+    static void splitExpression(const nsAString& labelString, const nsAString& delim, nsTArray<nsString>& outTokens);
+
+  private:
+    PrincipalExpressionSplitter(const char16_t* aStart, const char16_t* aEnd);
+    ~PrincipalExpressionSplitter();
+
+    inline bool atEnd()
+    {
+      return mCurChar >= mEndChar;
+    }
+
+    inline void skipWhiteSpace()
+    {
+      while (mCurChar < mEndChar && *mCurChar == ' ') {
+        mCurToken.Append(*mCurChar++);
+      }
+      mCurToken.Truncate();
+    }
+
+    inline bool accept(char16_t aChar)
+    {
+      NS_ASSERTION(mCurChar < mEndChar, "Trying to dereference mEndChar");
+      if (*mCurChar == aChar) {
+        mCurToken.Append(*mCurChar++);
+        return true;
+      }
+      return false;
+    }
+
+    void generateNextToken(const nsAString& delim);
+    void generateTokens(const nsAString& delim, nsTArray<nsString>& outTokens);
+
+    const char16_t* mCurChar;
+    const char16_t* mEndChar;
+    nsString        mCurToken;
+};
+
 class COWLParser
 {
 
 public:
   static COWLPrincipalType validateFormat(const nsAString& principal);
+  static already_AddRefed<Label> parsePrincipalExpression(const nsAString& principal);
 
 private:
   COWLParser(const nsAString &principal);
