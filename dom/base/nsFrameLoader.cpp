@@ -461,6 +461,10 @@ nsFrameLoader::CheckURILoad(nsIURI* aURI)
   // window.location instead.
   nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
 
+  nsAutoCString origin;
+  aURI->GetAsciiSpec(origin);
+  printf("Frame loader!!: Reading content from: %s\n", ToNewCString(origin));
+
   // Get our principal
   nsIPrincipal* principal = mOwnerContent->NodePrincipal();
 
@@ -470,6 +474,20 @@ nsFrameLoader::CheckURILoad(nsIURI* aURI)
                                       nsIScriptSecurityManager::STANDARD);
   if (NS_FAILED(rv)) {
     return rv; // We're not
+  }
+
+
+  nsCOMPtr<nsIDocument> doc = mOwnerContent->OwnerDoc();
+  // get the compartment and JSObject?
+  JSObject* docObj = doc->GetWrapperPreserveColor();
+  if (docObj) {
+    JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
+
+    bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
+    if (!canFlowTo) {
+      rv = NS_ERROR_FAILURE;
+      return rv;
+    }
   }
 
   // Bail out if this is an infinite recursion scenario

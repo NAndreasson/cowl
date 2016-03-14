@@ -141,8 +141,6 @@ DoCOWLSecurityChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
   JSObject* docObj = doc->GetWrapperPreserveColor();
   JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
 
-
-
   bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
   if (!canFlowTo) {
     nsresult rv = NS_ERROR_FAILURE;
