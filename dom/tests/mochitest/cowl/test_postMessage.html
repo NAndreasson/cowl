@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug </title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+  <p id="display"></p>
+  <pre id="test">
+
+  <script class="testbody" type="application/javascript">
+  SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestFlakyTimeout("Testing if PostMessage event is dropped");
+
+  var postMsgReceived = false;
+
+  // TEST CASE the iframe should not be able to communicate with this context through regular postMessage (msgs should be dropped) - this context has an untainted context and does not neccesarily preserve the privacy of messages being sent
+
+  function start_countdown() {
+    // In general a bad idea to set timeout in tests, not sure how to test this particular thing without it though.
+    setTimeout(function() {
+      if (!postMsgReceived) {
+        ok(true, "PostMessage msgs should be dropped");
+      } else {
+        ok(false, "PostMessage msgs should be dropped");
+      }
+      SimpleTest.finish();
+
+    }, 1000);
+  }
+
+  function receiveMessage(event)
+  {
+    postMsgReceived = true;
+  }
+
+  window.addEventListener("message", receiveMessage, false);
+
+  </script>
+  <iframe src="file_postmessage.html"></iframe>
+</pre>
+</body>
+</html>
