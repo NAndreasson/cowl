@@ -141,6 +141,7 @@ private:
 class DisjunctionSetUtils {
 
 public:
+  static DisjunctionSet ConstructDset();
   static DisjunctionSet ConstructDset(COWLPrincipal& principal);
   static DisjunctionSet CloneDset(const DisjunctionSet& dset);
 

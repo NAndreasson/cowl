@@ -591,10 +591,24 @@ COWLParser::parsePrincipalExpression(const nsAString& principal)
     PrincipalExpressionSplitter::splitExpression(ada, NS_LITERAL_STRING("OR"), ors);
 
     for (nsString prinTok : ors) {
+      printf("Print tok in ORS: %s \n", ToNewUTF8String(prinTok));
       // perform or on orExpr?
       orExp = orExp->Or(prinTok, aRv);
+
+      // did aRV fail?
+      if (aRv.Failed()) {
+        printf("Failed to OR???\n");
+      }
     }
-    label = label->And(*orExp, aRv);
+    /* label = label->And(*orExp, aRv); */
+    label->_And(*orExp, aRv);
+      if (aRv.Failed()) {
+        printf("Failed to AND???\n");
+      }
+    DisjunctionSetArray *otherRoles = label->GetDirectRoles();
+    int length = otherRoles->Length();
+    printf("Length %d\n", length);
+    // how many disjunction sets now?
   }
 
   return label.forget();

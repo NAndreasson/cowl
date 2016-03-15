@@ -24,6 +24,9 @@ NS_INTERFACE_MAP_END
 
 Label::Label()
 {
+  // construct an empty set
+  /* DisjunctionSet emptyDset = DisjunctionSetUtils::ConstructDset(); */
+  /* mRoles.AppendElement(emptyDset); */
 }
 
 Label::Label(DisjunctionSet &dset, ErrorResult &aRv)
@@ -60,8 +63,12 @@ Label::Constructor(const GlobalObject& global, ErrorResult& aRv)
 
 already_AddRefed<Label>
 Label::Constructor(const GlobalObject& global, const nsAString& principal,
-                   ErrorResult& aRv)
-{
+                   ErrorResult& aRv) {
+  RefPtr<Label> lbl = COWLParser::parsePrincipalExpression(principal);
+  nsAutoString meck;
+  lbl->Stringify(meck);
+  printf("Lbl: %s\n", ToNewUTF8String(meck));
+
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
 
@@ -255,7 +262,7 @@ Label::Stringify(nsString& retval)
   int mRolesLength = mRoles.Length();
 
   // if empty label
-  if (mRolesLength == 0) {
+  if (IsEmpty()) {
     retval = NS_LITERAL_STRING("'none'");
     return;
   }
@@ -346,14 +353,13 @@ Label::_And(mozilla::dom::Label& label, ErrorResult& aRv)
 void
 Label::_Or(DisjunctionSet& role, ErrorResult& aRv)
 {
-
-  // This label is empty, disjunction should not change it.
-  if (IsEmpty())
-    return;
-
   /* Create a new label to which we'll add new roles containing the
    * above role. This eliminates the need to first do the disjunction
    * and then reduce the label to conjunctive normal form. */
+  if (IsEmpty()) {
+    DisjunctionSet emptyDset = DisjunctionSetUtils::ConstructDset();
+    mRoles.AppendElement(emptyDset);
+  }
 
   Label tmpLabel;
 
@@ -498,6 +504,12 @@ COWLPrincipalUtils::ConstructOriginPrincipal(const nsAString& principal)
   return newPrincipal;
 }
 
+DisjunctionSet
+DisjunctionSetUtils::ConstructDset()
+{
+  DisjunctionSet dset;
+  return dset;
+}
 
 DisjunctionSet
 DisjunctionSetUtils::ConstructDset(COWLPrincipal& principal)
@@ -527,8 +539,10 @@ DisjunctionSetUtils::Or(DisjunctionSet& dset1, DisjunctionSet& dset2)
 
   for (unsigned i = 0; i < dset2.Length(); i++) {
     COWLPrincipal& principal = dset2.ElementAt(i);
-    if(!dset1.Contains(principal, cmp))
+    if(!dset1.Contains(principal, cmp)) {
       dset1.InsertElementSorted(principal, cmp);
+    }
+
   }
 }
 
