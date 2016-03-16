@@ -64,10 +64,10 @@ Label::Constructor(const GlobalObject& global, ErrorResult& aRv)
 already_AddRefed<Label>
 Label::Constructor(const GlobalObject& global, const nsAString& principal,
                    ErrorResult& aRv) {
-  RefPtr<Label> lbl = COWLParser::parsePrincipalExpression(principal);
-  nsAutoString meck;
-  lbl->Stringify(meck);
-  printf("Lbl: %s\n", ToNewUTF8String(meck));
+  /* RefPtr<Label> lbl = COWLParser::parsePrincipalExpression(principal); */
+  /* nsAutoString meck; */
+  /* lbl->Stringify(meck); */
+  /* printf("Lbl: %s\n", ToNewUTF8String(meck)); */
 
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);

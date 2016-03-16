@@ -90,6 +90,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     is(priv1Label.subsumes(priv2Label, priv2), true, "A label subsumes another if given the privilege for it");
   }
 
+  function testAndOnEmptyLabel() {
+    var emptyLabel = new Label();
+    var aLabel = new Label('http://a.com/');
+    var aAndEmptyLabel = emptyLabel.and(aLabel);
+
+    is(aAndEmptyLabel.equals(new Label('http://a.com/')), true, 'Label should be equal to the nonempty label used');
+  }
+
   function testAnd() {
     var aLabel = new Label('http://a.com/');
     var bLabel = new Label('http://b.com/');
@@ -121,6 +129,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     is(bLabel.subsumes(aOrBLabel), true);
   }
 
+  function testOrOnEmptyLabel() {
+    var emptyLabel = new Label();
+    var aLabel = new Label('http://a.com/');
+    var emptyOrALabel = emptyLabel.or(aLabel);
+
+    is(emptyOrALabel.equals(new Label('http://a.com/')), true, 'Label should be equal to the nonempty label used');
+  }
+
   function testToString() {
     var emptyLabel = new Label();
     is(emptyLabel.toString(), "'none'");
@@ -140,7 +156,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     testEquals();
     testSubsumes();
     testAnd();
+    testAndOnEmptyLabel();
     testOr();
+    testOrOnEmptyLabel();
     testToString();
 
     SimpleTest.finish();
