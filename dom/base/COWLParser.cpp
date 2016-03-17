@@ -572,11 +572,19 @@ COWLParser::parsePrincipalExpression(const nsAString& principal)
 {
   RefPtr<Label> label = new Label();
 
+  // collapse etc
+
   /* // copy string and lowercase it? */
   /* nsAutoString tmpPrincipal(principal); */
   /* ToLowerCase(tmpPrincipal); */
 
   // TODO trim principal etc
+
+
+  // chek if equal to none...
+  if (principal.EqualsLiteral("'none'")) {
+    return label.forget();
+  }
 
   nsTArray<nsString> ands;
   PrincipalExpressionSplitter::splitExpression(principal, NS_LITERAL_STRING("AND"), ands);
