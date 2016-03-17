@@ -617,6 +617,69 @@ COWLParser::parsePrincipalExpression(const nsAString& principal)
   return label.forget();
 }
 
+void
+COWLParser::StrictSplit(const char* delim, const nsACString& expr, nsTArray<nsCString>& outTokens) {
+  // Borrowed from https://dxr.mozilla.org/mozilla-central/source/dom/media/gmp/GMPUtils.cpp
+  nsAutoCString str(expr);
+  char* end = str.BeginWriting();
+  const char* start = nullptr;
+  while (!!(start = NS_strtok(delim, &end))) {
+    outTokens.AppendElement(nsCString(start));
+  }
+
+}
+
+void
+COWLParser::parseLabeledDataHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt)
+{
+  RefPtr<Label> confidentiality = nullptr;
+  RefPtr<Label> integrity = nullptr;
+
+  nsTArray<nsCString> tokens;
+  COWLParser::StrictSplit(";", expr, tokens);
+
+  for (nsCString tok : tokens) {
+    // make sure that TOK is not empty
+    const char* start = tok.BeginReading();
+    const char* end = tok.EndReading();
+
+    // ship whitespace
+    while (start < end && *start == ' ') start++;
+
+    // collect sequence
+    nsAutoCString directiveName;
+    while (start < end && *start != ' ') directiveName.Append(*start++);
+    // see if start is not at end.. and that is at space, then just skip ahead
+    if (start < end && *start == ' ') start++;
+
+    nsAutoCString directiveValue;
+    // remaining characters should be the
+    while (start < end) directiveValue.Append(*start++);
+
+    // make use of parsellabel...
+    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue));
+    // look for failure, report to server
+
+    // check if directive name equals data-confidentiality and conflabel null
+    if (directiveName.Equals(NS_LITERAL_CSTRING("data-confidentiality")) && !confidentiality) {
+      confidentiality = label;
+    } else if (directiveName.Equals(NS_LITERAL_CSTRING("data-integrity")) && !integrity) {
+      integrity = label;
+    } else {
+      // report an error?
+      break;
+    }
+
+    printf("Result from split %s\n", ToNewCString(tok));
+    printf("Directive name %s\n", ToNewCString(directiveName));
+    printf("Directive value %s\n", ToNewCString(directiveValue));
+  }
+
+  // set out params
+  *outConf = confidentiality;
+  *outInt = integrity;
+}
+
 }
 }
 

@@ -70,6 +70,8 @@ class COWLParser
 public:
   static COWLPrincipalType validateFormat(const nsAString& principal);
   static already_AddRefed<Label> parsePrincipalExpression(const nsAString& principal);
+  static void parseLabeledDataHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt);
+  static void StrictSplit(const char* delim, const nsACString& expr, nsTArray<nsCString>& outTokens);
 
 private:
   COWLParser(const nsAString &principal);
