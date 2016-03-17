@@ -38,6 +38,9 @@
 #include "InternalRequest.h"
 #include "InternalResponse.h"
 
+#include "mozilla/dom/COWLParser.h"
+#include "mozilla/dom/Label.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -93,7 +96,7 @@ FetchDriver::ContinueFetch()
   if (NS_FAILED(rv)) {
     FailWithNetworkError();
   }
- 
+
   return rv;
 }
 
@@ -581,6 +584,13 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
   // interception case.
   mRequest->MaybeIncreaseResponseTainting(loadInfo->GetTainting());
 
+  // check COWL things...
+  bool cowlContinue = DoCOWLCheck(response);
+  if (!cowlContinue) {
+    FailWithNetworkError();
+    return NS_ERROR_FAILURE;
+  }
+
   // Resolves fetch() promise which may trigger code running in a worker.  Make
   // sure the Response is fully initialized before calling this.
   mResponse = BeginAndGetFilteredResponse(response, channelURI,
@@ -598,6 +608,54 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
     NS_WARN_IF(NS_FAILED(rr->RetargetDeliveryTo(sts)));
   }
   return NS_OK;
+}
+
+bool
+FetchDriver::DoCOWLCheck(InternalResponse* aResponse)
+{
+  InternalHeaders* headers = aResponse->Headers();
+  ErrorResult aRv;
+
+  bool cowlHeaderPresent= headers->Has(NS_LITERAL_CSTRING("Sec-COWL"), aRv);
+  if (!cowlHeaderPresent) {
+    return true;
+  }
+
+  printf("COWL header present!\n");
+
+  // get SEC-COWL
+  nsAutoCString secCOWL;
+  headers->Get(NS_LITERAL_CSTRING("Sec-COWL"), secCOWL, aRv);
+
+  // get the loading document...
+  JSObject* docObj = mDocument->GetWrapperPreserveColor();
+  if (!docObj) {
+    // not sure here, should probably fail...
+    return true;
+  }
+  JSCompartment* compartment = js::GetObjectCompartment(docObj);
+
+  RefPtr<mozilla::dom::Label> confidentiality;
+  RefPtr<mozilla::dom::Label> integrity;
+
+  // parse SecCOWL...
+  COWLParser::parseLabeledDataHeader(secCOWL, &confidentiality, &integrity);
+
+  if (!confidentiality) {
+    printf("Conf label null, report error!\n");
+    return false; // blocked, malformed
+  }
+
+  if (!integrity) {
+    printf("Integrity label null, setting to null\n");
+    integrity = new mozilla::dom::Label();
+  }
+
+  nsAutoString confStr;
+  confidentiality->Stringify(confStr);
+  printf("Serialized label %s\n", ToNewUTF8String(confStr));
+
+  return xpc::cowl::GuardRead(compartment, *confidentiality, *integrity);
 }
 
 NS_IMETHODIMP

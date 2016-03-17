@@ -91,6 +91,8 @@ private:
   FetchDriver& operator=(const FetchDriver&) = delete;
   ~FetchDriver();
 
+  bool DoCOWLCheck(InternalResponse* aResponse);
+
   nsresult ContinueFetch();
   nsresult HttpFetch();
   // Returns the filtered response sent to the observer.
