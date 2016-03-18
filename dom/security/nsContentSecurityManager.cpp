@@ -121,14 +121,17 @@ DoCORSChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo,
 }
 
 static nsresult
-DoCOWLSecurityChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
+DoCOWLSecurityChecks(nsIURI* aURI, nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
 {
-  nsCOMPtr<nsIURI> channelURI;
-  aChannel->GetURI(getter_AddRefs(channelURI));
-  nsAutoCString origin;
-  channelURI->GetAsciiSpec(origin);
+  printf("Performing COWL Security checks\n");
+  // If chrome code, then just accept
+  if (URIHasFlags(aURI, nsIProtocolHandler::URI_IS_UI_RESOURCE)) {
+    return NS_OK;
+  }
 
-  printf("Reading content from: %s\n", ToNewCString(origin));
+  nsAutoCString origin;
+  aURI->GetAsciiSpec(origin);
+  printf("Checking content from: %s\n", ToNewCString(origin));
 
   nsCOMPtr<nsIDOMDocument> dommyDoc;
   aLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
@@ -136,7 +139,6 @@ DoCOWLSecurityChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
   if (!doc)
     return NS_OK;
 
-  printf("Found a document\n");
 
   JSObject* docObj = doc->GetWrapperPreserveColor();
   JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
@@ -403,7 +405,7 @@ nsContentSecurityManager::doContentSecurityCheck(nsIChannel* aChannel,
   rv = DoContentSecurityChecks(finalChannelURI, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = DoCOWLSecurityChecks(aChannel, loadInfo);
+  rv = DoCOWLSecurityChecks(finalChannelURI, aChannel, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // now lets set the initalSecurityFlag for subsequent calls

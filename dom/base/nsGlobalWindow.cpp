@@ -2580,6 +2580,20 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                    newInnerWindow->GetWrapperPreserveColor() == newInnerGlobal,
                    "Failed to get script global");
 
+      mozilla::dom::Label* ctxConfidentiality = aDocument->GetCtxConfLabel();
+      mozilla::dom::Label* ctxIntegrity = aDocument->GetCtxIntLabel();
+      mozilla::dom::Label* ctxPrivilege = aDocument->GetCtxPrivLabel();
+
+      JSCompartment *compartment = js::GetObjectCompartment(newInnerGlobal);
+      if (compartment && ctxConfidentiality && ctxIntegrity && ctxPrivilege) {
+        printf("Have a compartment and labels are set?\n");
+        xpc::cowl::EnableCompartmentConfinement(compartment);
+        // Labels are cloned in functions below
+        xpc::cowl::SetCompartmentConfidentialityLabel(compartment, ctxConfidentiality);
+        xpc::cowl::SetCompartmentIntegrityLabel(compartment, ctxIntegrity);
+        xpc::cowl::SetCompartmentPrivileges(compartment, ctxPrivilege);
+      }
+
       mCreatingInnerWindow = false;
       createdInnerWindow = true;
       Thaw();
