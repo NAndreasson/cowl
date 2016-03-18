@@ -629,6 +629,65 @@ COWLParser::StrictSplit(const char* delim, const nsACString& expr, nsTArray<nsCS
 
 }
 
+// TODO could probably make more clean or add with the one below
+void
+COWLParser::parseLabeledContextHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt, RefPtr<Label>* outPriv)
+{
+  RefPtr<Label> confidentiality = nullptr;
+  RefPtr<Label> integrity = nullptr;
+  RefPtr<Label> privilege = nullptr;
+
+  nsTArray<nsCString> tokens;
+  COWLParser::StrictSplit(";", expr, tokens);
+
+  for (nsCString tok : tokens) {
+    // make sure that TOK is not empty
+    const char* start = tok.BeginReading();
+    const char* end = tok.EndReading();
+
+    // ship whitespace
+    while (start < end && *start == ' ') start++;
+
+    // collect sequence
+    nsAutoCString directiveName;
+    while (start < end && *start != ' ') directiveName.Append(*start++);
+    // see if start is not at end.. and that is at space, then just skip ahead
+    if (start < end && *start == ' ') start++;
+
+    nsAutoCString directiveValue;
+    // remaining characters should be the
+    while (start < end) directiveValue.Append(*start++);
+
+    // make use of parsellabel...
+    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue));
+    // look for failure, report to server
+
+    // check if directive name equals data-confidentiality and conflabel null
+    if (directiveName.EqualsLiteral("ctx-confidentiality") && !confidentiality) {
+      confidentiality = label;
+    } else if (directiveName.EqualsLiteral("ctx-integrity") && !integrity) {
+      integrity = label;
+    } else if (directiveName.EqualsLiteral("ctx-privilege") && !privilege) {
+      // TODO should be a privilege with internal set to.....
+      privilege = label;
+    } else {
+      // report an error?
+      break;
+    }
+
+    printf("Result from split %s\n", ToNewCString(tok));
+    printf("Directive name %s\n", ToNewCString(directiveName));
+    printf("Directive value %s\n", ToNewCString(directiveValue));
+  }
+
+  // set out params
+  *outConf = confidentiality;
+  *outInt = integrity;
+  *outPriv = privilege;
+
+
+}
+
 void
 COWLParser::parseLabeledDataHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt)
 {
