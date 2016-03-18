@@ -1440,7 +1440,7 @@ nsIDocument::nsIDocument()
 {
   SetInDocument();
 
-  PR_INIT_CLIST(&mDOMMediaQueryLists);  
+  PR_INIT_CLIST(&mDOMMediaQueryLists);
 }
 
 // NOTE! nsDocument::operator new() zeroes out all members, so don't
@@ -2562,6 +2562,9 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   if (!mLoadedAsData) {
     nsresult rv = InitCSP(aChannel);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    // Parse and set Sec-COWL headers if there are any.
+    InitCOWL(aChannel);
   }
 
   return NS_OK;
@@ -2676,6 +2679,57 @@ nsDocument::ApplySettingsFromCSP(bool aSpeculative)
       preloadCsp->GetUpgradeInsecureRequests(&mUpgradeInsecurePreloads);
     }
   }
+}
+
+nsresult
+nsDocument::InitCOWL(nsIChannel* aChannel)
+{
+  // get headers etc
+  // look to see if SEC-COWL present!
+  nsAutoCString secCOWLHeader;
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+  if (httpChannel) {
+    httpChannel->GetResponseHeader(
+        NS_LITERAL_CSTRING("Sec-COWL"),
+        secCOWLHeader);
+
+    if (secCOWLHeader.IsEmpty()) return NS_OK;
+
+    printf("SEC-COWL header is set: %s\n", secCOWLHeader.get());
+
+    RefPtr<mozilla::dom::Label> confidentiality;
+    RefPtr<mozilla::dom::Label> integrity;
+    RefPtr<mozilla::dom::Label> privilege;
+
+    COWLParser::parseLabeledContextHeader(secCOWLHeader, &confidentiality, &integrity, &privilege);
+
+    // blocked?
+    if (!confidentiality || !integrity || !privilege) {
+      printf("SEC-COWL conf, int or priv is null\n");
+
+    }
+
+    // Store parsed labels on the document, compartment seems to not be created yet ..
+    // These labels are set on the compartment when compartment is created in
+    // nsGlobalWindow
+    mCtxConfLabel = confidentiality;
+    mCtxIntLabel = integrity;
+    mCtxPrivLabel = privilege;
+
+    nsAutoString confStr;
+    confidentiality->Stringify(confStr);
+    printf("Serialized conf label %s\n", ToNewUTF8String(confStr));
+
+    nsAutoString intStr;
+    integrity->Stringify(intStr);
+    printf("Serialized int label %s\n", ToNewUTF8String(intStr));
+
+    nsAutoString privStr;
+    privilege->Stringify(privStr);
+    printf("Serialized priv label %s\n", ToNewUTF8String(privStr));
+  }
+
+  return NS_OK;
 }
 
 nsresult
@@ -13100,7 +13154,7 @@ nsDocument::ReportUseCounters()
     for (int32_t c = 0;
          c < eUseCounter_Count; ++c) {
       UseCounter uc = static_cast<UseCounter>(c);
-      
+
       Telemetry::ID id =
         static_cast<Telemetry::ID>(Telemetry::HistogramFirstUseCounter + uc * 2);
       bool value = GetUseCounter(uc);

@@ -125,6 +125,7 @@ struct FullscreenRequest;
 class ImportManager;
 class HTMLBodyElement;
 struct LifecycleCallbackArgs;
+class Label;
 class Link;
 class MediaQueryList;
 class GlobalObject;
@@ -256,6 +257,21 @@ public:
   nsIURI* GetDocumentURI() const
   {
     return mDocumentURI;
+  }
+
+  mozilla::dom::Label* GetCtxConfLabel()
+  {
+   return mCtxConfLabel;
+  }
+
+  mozilla::dom::Label* GetCtxIntLabel()
+  {
+   return mCtxIntLabel;
+  }
+
+  mozilla::dom::Label* GetCtxPrivLabel()
+  {
+   return mCtxPrivLabel;
   }
 
   /**
@@ -2751,6 +2767,10 @@ protected:
   nsCOMPtr<nsIURI> mChromeXHRDocURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
   nsCOMPtr<nsIURI> mChromeXHRDocBaseURI;
+
+  RefPtr<mozilla::dom::Label> mCtxConfLabel;
+  RefPtr<mozilla::dom::Label> mCtxIntLabel;
+  RefPtr<mozilla::dom::Label> mCtxPrivLabel;
 
   nsWeakPtr mDocumentLoadGroup;
 
