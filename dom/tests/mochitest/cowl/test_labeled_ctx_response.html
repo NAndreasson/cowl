@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Test for Bug </title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+  <p id="display"></p>
+  <pre id="test">
+
+  <script class="testbody" type="application/javascript">
+  SimpleTest.waitForExplicitFinish();
+
+  var completedTests = 0;
+  var passedTests = 0;
+
+  function start_tests(iframe) {
+    var wCWindow = SpecialPowers.wrap(iframe.contentWindow);
+    //var wwIframe = SpecialPowers.Cu.waiveXrays(wIframe);
+
+    ok(wCWindow.COWL.confidentiality.equals(new Label("http://a.com/")), "Confidentiality label should be set according to ctx-confidentiality header");
+    ok(wCWindow.COWL.integrity.equals(new Label("http://b.com/")), "Integrity label should be set according to ctx-integrity header");
+    ok(wCWindow.COWL.privilege.asLabel.equals(new Label("http://c.com/")), "Privilege internal label should be set according to ctx-privilege header");
+    SimpleTest.finish();
+  }
+
+
+  </script>
+  <iframe onload="start_tests(this)" src="http://example.com/tests/dom/tests/mochitest/cowl/labeled.html"></iframe>
+</pre>
+</body>
+</html>
