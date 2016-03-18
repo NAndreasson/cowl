@@ -145,6 +145,8 @@ DEFINE_GET_LABEL(ConfidentialityLabel)
 DEFINE_SET_LABEL(IntegrityLabel)
 DEFINE_GET_LABEL(IntegrityLabel)
 
+DEFINE_SET_LABEL(Privileges)
+
 #undef DEFINE_SET_LABEL
 #undef DEFINE_GET_LABEL
 
@@ -371,6 +373,9 @@ GuardRead(JSCompartment *compartment,
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *source, const nsACString& aUri)
 {
+  printf("In guard read\n");
+  MOZ_ASSERT(source);
+
   if (!IsCompartmentConfined(source)) {
     return true;
   }
@@ -391,8 +396,16 @@ GuardRead(JSCompartment *source, const nsACString& aUri)
 
   ErrorResult errRes;
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(tmpOrigin), errRes);
+  // TODO, should maybe change these to nsresult?
+  if (errRes.Failed()) {
+    printf("Err res failed\n");
+  }
+
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
   RefPtr<Label> uriLabel  = new Label(newDSet, errRes);
+  if (errRes.Failed()) {
+    printf("Err res failed\n");
+  }
 
   RefPtr<Label> effLabel = compConfidentiality->Downgrade(*privs);
 
