@@ -1,3 +1,6 @@
+<body>
+  <p>Running tests</p>
+
 <script>
   COWL.enable();
   COWL.confidentiality = new Label('http://alice.com/');
@@ -26,7 +29,23 @@
     };
   }
 
+  function testConstructScript() {
+    var script = document.createElement('script');
+    script.src = 'http://example.com/tests/dom/tests/mochitest/cowl/evil_script.js';
+
+    script.onload = function() {
+      wwParent.ok_wrapper(false, 'Should not load script after reading sensitive information');
+    };
+    script.onerror = function() {
+      wwParent.ok_wrapper(true, 'Should not load script after reading sensitive information');
+    };
+    document.body.appendChild(script);
+
+  }
+
   testFetch();
   testConstructImage();
+  testConstructScript();
 
 </script>
+</body>
