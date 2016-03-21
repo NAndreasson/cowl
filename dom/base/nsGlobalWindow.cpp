@@ -2587,7 +2587,32 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       JSCompartment *compartment = js::GetObjectCompartment(newInnerGlobal);
       if (compartment && ctxConfidentiality && ctxIntegrity && ctxPrivilege) {
         printf("Have a compartment and labels are set?\n");
+        // should do in the endfurther down?
+        // TODO, an we report things here?
         xpc::cowl::EnableCompartmentConfinement(compartment);
+
+        RefPtr<Label> stateCtxPrivLabel = xpc::cowl::GetCompartmentPrivileges(compartment);
+
+        if (!stateCtxPrivLabel->Subsumes(*ctxPrivilege)) {
+            // should be blocked
+            printf("Trying to create to strong priv\n");
+        }
+
+        if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *ctxConfidentiality, ctxPrivilege)) {
+          printf("Will result in stuck context\n");
+        }
+
+        // effective integrity label
+        /* RefPtr<Label> effIntegrityLabel = */
+
+        // effective integrity label shoud be the privile label?
+        if (!stateCtxPrivLabel->Subsumes(*ctxIntegrity)) {
+          printf("Integrity label does not subsumes?\n");
+        }
+
+        // check if stateCtxPriv subsumes the ctxPrivilege...
+        // if not, return blocked?
+
         // Labels are cloned in functions below
         xpc::cowl::SetCompartmentConfidentialityLabel(compartment, ctxConfidentiality);
         xpc::cowl::SetCompartmentIntegrityLabel(compartment, ctxIntegrity);
