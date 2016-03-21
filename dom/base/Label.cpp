@@ -233,6 +233,13 @@ Label::Clone(ErrorResult &aRv) const
   return label.forget();
 }
 
+already_AddRefed<Label>
+Label::Upgrade(mozilla::dom::Label& privilegeLabel)
+{
+  ErrorResult aRv;
+  // do an and and return...
+  return this->And(privilegeLabel, aRv);
+}
 
 // TODO, maybe pass privilege instead
 already_AddRefed<Label>

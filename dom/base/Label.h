@@ -110,6 +110,7 @@ public: // C++ only:
   bool Subsumes(const mozilla::dom::Label& privs, const mozilla::dom::Label& other);
 
   already_AddRefed<Label> Downgrade(mozilla::dom::Label& privilegeLabel);
+  already_AddRefed<Label> Upgrade(mozilla::dom::Label& privilegeLabel);
 
 
   //TODO: const these:
