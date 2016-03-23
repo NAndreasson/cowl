@@ -81,6 +81,9 @@
 #include "mozilla/Preferences.h"
 #include "private/pprio.h"
 
+#include "mozilla/dom/COWLParser.h"
+#include "mozilla/dom/Label.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -689,7 +692,7 @@ nsXMLHttpRequest::GetResponseText(nsString& aResponseText, ErrorResult& aRv)
   }
 
   mResponseBodyDecodedPos = mResponseBody.Length();
-  
+
   if (mState & XML_HTTP_REQUEST_DONE) {
     // Free memory buffer which we no longer need
     mResponseBody.Truncate();
@@ -1214,7 +1217,7 @@ nsXMLHttpRequest::IsSafeHeader(const nsACString& header, nsIHttpChannel* httpCha
     if (NS_FAILED(status)) {
       return false;
     }
-  }  
+  }
   const char* kCrossOriginSafeHeaders[] = {
     "cache-control", "content-language", "content-type", "expires",
     "last-modified", "pragma"
@@ -1370,7 +1373,7 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
 already_AddRefed<nsILoadGroup>
 nsXMLHttpRequest::GetLoadGroup() const
 {
-  if (mState & XML_HTTP_REQUEST_BACKGROUND) {                 
+  if (mState & XML_HTTP_REQUEST_BACKGROUND) {
     return nullptr;
   }
 
@@ -1443,7 +1446,7 @@ nsXMLHttpRequest::DispatchProgressEvent(DOMEventTargetHelper* aTarget,
                           aLengthComputable, aLoaded, aTotal);
   }
 }
-                                          
+
 already_AddRefed<nsIHttpChannel>
 nsXMLHttpRequest::GetCurrentHttpChannel()
 {
@@ -1554,7 +1557,7 @@ nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDocument> doc =
     nsContentUtils::GetDocumentFromScriptContext(sc);
-  
+
   nsCOMPtr<nsIURI> baseURI;
   if (mBaseURI) {
     baseURI = mBaseURI;
@@ -1828,7 +1831,7 @@ nsXMLHttpRequest::OnDataAvailable(nsIRequest *request,
   mDataAvailable += totalRead;
 
   ChangeState(XML_HTTP_REQUEST_LOADING);
-  
+
   MaybeDispatchProgressEvents(false);
 
   return NS_OK;
@@ -1839,6 +1842,16 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 {
   PROFILER_LABEL("nsXMLHttpRequest", "OnStartRequest",
     js::ProfileEntry::Category::NETWORK);
+
+  nsCOMPtr<nsIHttpChannel> aHttpChannel(do_QueryInterface(mChannel));
+
+  if (aHttpChannel) {
+    bool cowlContinue = DoCOWLCheck(aHttpChannel);
+    if (!cowlContinue) {
+      mErrorLoad = true;
+      return NS_ERROR_FAILURE;
+    }
+  }
 
   nsresult rv = NS_OK;
   if (!mFirstStartRequestSeen && mRequestObserver) {
@@ -1957,6 +1970,7 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   bool parseBody = mResponseType == XML_HTTP_RESPONSE_TYPE_DEFAULT ||
                      mResponseType == XML_HTTP_RESPONSE_TYPE_DOCUMENT;
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
+
   if (parseBody && httpChannel) {
     nsAutoCString method;
     httpChannel->GetRequestMethod(method);
@@ -2070,6 +2084,59 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   }
 
   return NS_OK;
+}
+
+bool
+nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
+  // check COWL headers
+  nsAutoCString secCOWL;
+  httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Sec-COWL"), secCOWL);
+  if (secCOWL.IsEmpty()) return true;
+
+  printf("Found a header\n");
+
+  nsCOMPtr<nsIURI> docURI;
+  nsresult rv = httpChannel->GetURI(getter_AddRefs(docURI));
+
+  nsAutoCString origin;
+  docURI->GetAsciiSpec(origin);
+  printf("SEC-COWL header present %s\n", ToNewCString(origin));
+
+  nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->GetLoadInfo();
+
+  nsCOMPtr<nsIDOMDocument> dommyDoc;
+  loadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc);
+
+  if (!doc) return true;
+
+  JSObject* docObj = doc->GetWrapperPreserveColor();
+  if (!docObj) {
+    // not sure here, should probably fail...
+    return true;
+  }
+
+  JSCompartment* compartment = js::GetObjectCompartment(docObj);
+
+  RefPtr<mozilla::dom::Label> confidentiality;
+  RefPtr<mozilla::dom::Label> integrity;
+
+  // parse SecCOWL...
+  COWLParser::parseLabeledDataHeader(secCOWL, &confidentiality, &integrity);
+
+  if (!confidentiality) {
+    printf("Conf label null, report error!\n");
+    return false; // blocked, malformed
+  }
+
+  if (!integrity) {
+    printf("Integrity label null, setting to null\n");
+    integrity = new mozilla::dom::Label();
+  }
+
+  // get the compartment from the document
+  // parse headers
+  return xpc::cowl::GuardRead(compartment, *confidentiality, *integrity);
 }
 
 NS_IMETHODIMP
@@ -2686,7 +2753,7 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
       if (!NS_InputStreamIsBuffered(postDataStream)) {
         nsCOMPtr<nsIInputStream> bufferedStream;
         rv = NS_NewBufferedInputStream(getter_AddRefs(bufferedStream),
-                                       postDataStream, 
+                                       postDataStream,
                                        4096);
         NS_ENSURE_SUCCESS(rv, rv);
 

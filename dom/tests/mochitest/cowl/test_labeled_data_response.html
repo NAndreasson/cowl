@@ -28,18 +28,36 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
       passedTests++;
     }
 
-    if (completedTests == 1) {
-      is(passedTests, completedTests, "There are " + completedTests + " privilege tests that should pass");
+    if (completedTests == 2) {
+      is(passedTests, completedTests, "There are " + completedTests + " labeled response tests that should pass");
 
       SimpleTest.finish();
     }
   }
 
-fetch('http://example.com/tests/dom/tests/mochitest/cowl/labeled.html').then(function(res) {
-  ok_wrapper(false, "Should not be able to load labeled response when not confined");
-}).catch(function(e) {
-  ok_wrapper(true, "Should not be able to load labeled response when not confined");
-});
+  function testFetch() {
+    fetch('http://example.com/tests/dom/tests/mochitest/cowl/labeled.html').then(function(res) {
+      ok_wrapper(false, "Fetch: Should not be able to load labeled response when not confined");
+    }).catch(function(e) {
+      ok_wrapper(true, "Fetch: Should not be able to load labeled response when not confined");
+    });
+  }
+
+  function testXHR() {
+    var req= new XMLHttpRequest();
+    req.addEventListener("load", function() {
+      ok_wrapper(false, "XHR: Should not be able to load labeled response when not confined");
+    });
+    req.addEventListener("error", function() {
+      ok_wrapper(true, "XHR: Should not be able to load labeled response when not confined");
+    });
+
+    req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/labeled.html");
+    req.send();
+  }
+
+  testFetch();
+  testXHR();
   </script>
 </pre>
 </body>
