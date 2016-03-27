@@ -248,6 +248,8 @@
   /* The lookup of a hostname failed.  This generally refers to the hostname
    * from the URL being loaded. */
   ERROR(NS_ERROR_UNKNOWN_HOST,           FAILURE(30)),
+  // TODO, possibly check Error code here
+  ERROR(NS_ERROR_COWL_CTX,                        FAILURE(31)),
   /* A low or medium priority DNS lookup failed because the pending queue was
    * already full. High priorty (the default) always makes room */
   ERROR(NS_ERROR_DNS_LOOKUP_QUEUE_FULL,  FAILURE(33)),

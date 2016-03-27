@@ -4824,6 +4824,8 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
     CopyUTF8toUTF16(host, formatStrs[0]);
     formatStrCount = 1;
     error.AssignLiteral("dnsNotFound");
+  } else if (NS_ERROR_COWL_CTX == aError) {
+    error.AssignLiteral("cowlBlocked");
   } else if (NS_ERROR_CONNECTION_REFUSED == aError) {
     NS_ENSURE_ARG_POINTER(aURI);
     addHostPort = true;
