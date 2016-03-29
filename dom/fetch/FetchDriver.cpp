@@ -638,8 +638,15 @@ FetchDriver::DoCOWLCheck(InternalResponse* aResponse)
   RefPtr<mozilla::dom::Label> confidentiality;
   RefPtr<mozilla::dom::Label> integrity;
 
+  // getOrigin from principal
+  /* nsAutoCString prinOrigin; */
+  /* nsresult rv = mPrincipal->GetOrigin(prinOrigin); */
+
+  /* // print prinOrigin */
+  /* printf("Principal origin %s\n", ToNewCString(prinOrigin)); */
+
   // parse SecCOWL...
-  COWLParser::parseLabeledDataHeader(secCOWL, &confidentiality, &integrity);
+  COWLParser::parseLabeledDataHeader(secCOWL, NS_LITERAL_CSTRING(""), &confidentiality, &integrity);
 
   if (!confidentiality) {
     printf("Conf label null, report error!\n");
