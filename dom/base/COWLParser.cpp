@@ -568,7 +568,7 @@ COWLParser::validateFormat(const nsAString& principal)
 }
 
 already_AddRefed<Label>
-COWLParser::parsePrincipalExpression(const nsAString& principal)
+COWLParser::parsePrincipalExpression(const nsAString& principal, const nsACString& selfUrl)
 {
   RefPtr<Label> label = new Label();
 
@@ -592,16 +592,29 @@ COWLParser::parsePrincipalExpression(const nsAString& principal)
 
   ErrorResult aRv;
 
-  for (nsString ada : ands) {
+  for (nsString aAnd : ands) {
     RefPtr<Label> orExp = new Label();
 
+    if (ands.Length() > 1) {
+      // should be wrapped in ( ), if not fail
+      if (aAnd.First() != '(' || aAnd.Last() != ')') {
+        return nullptr;
+      }
+
+      // remove first and last character... which should be ( and )
+      aAnd.Cut(0, 1); aAnd.Cut(aAnd.Length() - 1, 1);
+    }
+
     nsTArray<nsString> ors;
-    PrincipalExpressionSplitter::splitExpression(ada, NS_LITERAL_STRING("OR"), ors);
+    PrincipalExpressionSplitter::splitExpression(aAnd, NS_LITERAL_STRING("OR"), ors);
 
     for (nsString prinTok : ors) {
       // perform or on orExpr?
-      orExp = orExp->Or(prinTok, aRv);
+      if (prinTok.EqualsLiteral("'self'")) {
+        prinTok = NS_ConvertUTF8toUTF16(selfUrl);
+      }
 
+      orExp = orExp->Or(prinTok, aRv);
       // did aRV fail?
       if (aRv.Failed()) {
       }
@@ -631,7 +644,7 @@ COWLParser::StrictSplit(const char* delim, const nsACString& expr, nsTArray<nsCS
 
 // TODO could probably make more clean or add with the one below
 void
-COWLParser::parseLabeledContextHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt, RefPtr<Label>* outPriv)
+COWLParser::parseLabeledContextHeader(const nsACString& expr, const nsACString& selfUrl, RefPtr<Label>* outConf, RefPtr<Label>* outInt, RefPtr<Label>* outPriv)
 {
   RefPtr<Label> confidentiality = nullptr;
   RefPtr<Label> integrity = nullptr;
@@ -659,7 +672,7 @@ COWLParser::parseLabeledContextHeader(const nsACString& expr, RefPtr<Label>* out
     while (start < end) directiveValue.Append(*start++);
 
     // make use of parsellabel...
-    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue));
+    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue), selfUrl);
     // look for failure, report to server
 
     // check if directive name equals data-confidentiality and conflabel null
@@ -689,7 +702,7 @@ COWLParser::parseLabeledContextHeader(const nsACString& expr, RefPtr<Label>* out
 }
 
 void
-COWLParser::parseLabeledDataHeader(const nsACString& expr, RefPtr<Label>* outConf, RefPtr<Label>* outInt)
+COWLParser::parseLabeledDataHeader(const nsACString& expr, const nsACString& selfUrl, RefPtr<Label>* outConf, RefPtr<Label>* outInt)
 {
   RefPtr<Label> confidentiality = nullptr;
   RefPtr<Label> integrity = nullptr;
@@ -716,13 +729,13 @@ COWLParser::parseLabeledDataHeader(const nsACString& expr, RefPtr<Label>* outCon
     while (start < end) directiveValue.Append(*start++);
 
     // make use of parsellabel...
-    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue));
+    RefPtr<Label> label = COWLParser::parsePrincipalExpression(NS_ConvertUTF8toUTF16(directiveValue), selfUrl);
     // look for failure, report to server
 
     // check if directive name equals data-confidentiality and conflabel null
-    if (directiveName.Equals(NS_LITERAL_CSTRING("data-confidentiality")) && !confidentiality) {
+    if (directiveName.EqualsLiteral("data-confidentiality") && !confidentiality) {
       confidentiality = label;
-    } else if (directiveName.Equals(NS_LITERAL_CSTRING("data-integrity")) && !integrity) {
+    } else if (directiveName.EqualsLiteral("data-integrity") && !integrity) {
       integrity = label;
     } else {
       // report an error?
