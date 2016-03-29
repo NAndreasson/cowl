@@ -1718,7 +1718,7 @@ private:
   nsresult CheckFrameOptions();
   bool IsLoopDocument(nsIChannel* aChannel);
   nsresult InitCSP(nsIChannel* aChannel);
-  nsresult InitCOWL(nsIChannel* aChannel);
+  nsresult InitCOWL(nsIChannel* aChannel, nsISupports* aContainer);
 
   /**
    * Find the (non-anonymous) content in this document for aFrame. It will

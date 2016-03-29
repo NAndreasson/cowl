@@ -2564,7 +2564,7 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Parse and set Sec-COWL headers if there are any.
-    InitCOWL(aChannel);
+    InitCOWL(aChannel, aContainer);
   }
 
   return NS_OK;
@@ -2682,7 +2682,7 @@ nsDocument::ApplySettingsFromCSP(bool aSpeculative)
 }
 
 nsresult
-nsDocument::InitCOWL(nsIChannel* aChannel)
+nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 {
   // get headers etc
   // look to see if SEC-COWL present!
@@ -2695,18 +2695,64 @@ nsDocument::InitCOWL(nsIChannel* aChannel)
 
     if (secCOWLHeader.IsEmpty()) return NS_OK;
 
+    nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aContainer);
+    nsCOMPtr<nsIURI> url;
+    nsresult rv = aChannel->GetURI(getter_AddRefs(url));
+
+    nsIPrincipal* principal = NodePrincipal();
+    nsAutoCString prinOrigin;
+    rv = principal->GetOrigin(prinOrigin);
+
+    printf("Principal origin %s\n", ToNewCString(prinOrigin));
+
+
+    // construct a label, which will act as privilege and effective integrity
+    // label...
+    ErrorResult errRes;
+    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(prinOrigin), errRes);
+    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+    // priv label, can be used as effective integrity label as well
+    RefPtr<Label> privLabel  = new Label(newDSet, errRes);
+
+    // print url??
+
     printf("SEC-COWL header is set: %s\n", secCOWLHeader.get());
 
     RefPtr<mozilla::dom::Label> confidentiality;
     RefPtr<mozilla::dom::Label> integrity;
     RefPtr<mozilla::dom::Label> privilege;
 
-    COWLParser::parseLabeledContextHeader(secCOWLHeader, &confidentiality, &integrity, &privilege);
+    COWLParser::parseLabeledContextHeader(secCOWLHeader, prinOrigin, &confidentiality, &integrity, &privilege);
 
     // blocked?
     if (!confidentiality || !integrity || !privilege) {
       printf("SEC-COWL conf, int or priv is null\n");
 
+      if (!docShell) return NS_OK;
+
+      bool didDisplayLoadError = false;
+      docShell->DisplayLoadError(NS_ERROR_COWL_CTX, url, nullptr, aChannel, &didDisplayLoadError);
+      return NS_OK;
+    }
+
+    /* // perform checks, should be the principal? */
+    if (!privLabel->Subsumes(*privilege)) {
+      // should be blocked
+      printf("Trying to create to strong priv\n");
+      /* bool didDisplayLoadError = false; */
+      /* docShell->DisplayLoadError(NS_ERROR_COWL_CTX, url, nullptr, aChannel, &didDisplayLoadError); */
+      aChannel->Cancel(NS_ERROR_COWL_CTX);
+      return NS_OK;
+    }
+
+    // TODO
+
+    /* if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *ctxConfidentiality, ctxPrivilege)) { */
+    /*   printf("Will result in stuck context\n"); */
+    /* } */
+
+    if (!privLabel->Subsumes(*integrity)) {
+      printf("Integrity label does not subsumes?\n");
     }
 
     // Store parsed labels on the document, compartment seems to not be created yet ..

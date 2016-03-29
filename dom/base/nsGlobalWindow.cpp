@@ -2591,24 +2591,12 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         // TODO, an we report things here?
         xpc::cowl::EnableCompartmentConfinement(compartment);
 
-        RefPtr<Label> stateCtxPrivLabel = xpc::cowl::GetCompartmentPrivileges(compartment);
 
-        if (!stateCtxPrivLabel->Subsumes(*ctxPrivilege)) {
-            // should be blocked
-            printf("Trying to create to strong priv\n");
-        }
-
-        if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *ctxConfidentiality, ctxPrivilege)) {
-          printf("Will result in stuck context\n");
-        }
 
         // effective integrity label
         /* RefPtr<Label> effIntegrityLabel = */
 
         // effective integrity label shoud be the privile label?
-        if (!stateCtxPrivLabel->Subsumes(*ctxIntegrity)) {
-          printf("Integrity label does not subsumes?\n");
-        }
 
         // check if stateCtxPriv subsumes the ctxPrivilege...
         // if not, return blocked?
