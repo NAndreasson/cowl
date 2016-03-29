@@ -2121,8 +2121,12 @@ nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
   RefPtr<mozilla::dom::Label> confidentiality;
   RefPtr<mozilla::dom::Label> integrity;
 
+  // TODO use the request origin?
+  /* nsAutoCString prinOrigin; */
+  /* nsresult rv = mPrincipal->GetOrigin(prinOrigin); */
+
   // parse SecCOWL...
-  COWLParser::parseLabeledDataHeader(secCOWL, &confidentiality, &integrity);
+  COWLParser::parseLabeledDataHeader(secCOWL, NS_LITERAL_CSTRING(""), &confidentiality, &integrity);
 
   if (!confidentiality) {
     printf("Conf label null, report error!\n");
