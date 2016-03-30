@@ -130,8 +130,27 @@ DoCOWLSecurityChecks(nsIURI* aURI, nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
   }
 
   nsAutoCString origin;
-  aURI->GetAsciiSpec(origin);
+  aURI->GetPrePath(origin);
   printf("Checking content from: %s\n", ToNewCString(origin));
+  /* nsIPrincipal* loadingPrincipal = aLoadInfo->LoadingPrincipal(); */
+  /* if (!loadingPrincipal) { */
+  /*   return NS_OK; // when does this happen, about:blank? */
+  /* } */
+
+  /* printf("Before URI\n"); */
+  /* nsCOMPtr<nsIURI> requestOrigin; */
+  /* loadingPrincipal->GetURI(getter_AddRefs(requestOrigin)); */
+
+  /* // when does this happen? */
+  /* if (!requestOrigin) return NS_OK; */
+
+  /* printf("Get ASCII spec\n"); */
+
+  /* nsAutoCString lOrigin; */
+  /* requestOrigin->GetAsciiSpec(lOrigin); */
+  /* printf("Loading prin oriing content from: %s\n", ToNewCString(lOrigin)); */
+
+  // pprint spec...
 
   nsCOMPtr<nsIDOMDocument> dommyDoc;
   aLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
