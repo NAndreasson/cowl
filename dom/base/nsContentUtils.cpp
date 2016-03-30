@@ -3040,7 +3040,7 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
   }
 
   nsAutoCString origin;
-  aURI->GetAsciiSpec(origin);
+  aURI->GetPrePath(origin);
   printf("Check load image from: %s\n", ToNewCString(origin));
 
   // Perform a COWL
