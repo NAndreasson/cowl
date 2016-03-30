@@ -585,7 +585,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
   mRequest->MaybeIncreaseResponseTainting(loadInfo->GetTainting());
 
   // check COWL things...
-  bool cowlContinue = DoCOWLCheck(response);
+  bool cowlContinue = DoCOWLCheck(response, channelURI);
   if (!cowlContinue) {
     FailWithNetworkError();
     return NS_ERROR_FAILURE;
@@ -611,7 +611,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest,
 }
 
 bool
-FetchDriver::DoCOWLCheck(InternalResponse* aResponse)
+FetchDriver::DoCOWLCheck(InternalResponse* aResponse, nsIURI* aFinalURI)
 {
   InternalHeaders* headers = aResponse->Headers();
   ErrorResult aRv;
@@ -644,9 +644,19 @@ FetchDriver::DoCOWLCheck(InternalResponse* aResponse)
 
   /* // print prinOrigin */
   /* printf("Principal origin %s\n", ToNewCString(prinOrigin)); */
+  nsAutoCString reqOrigin;
+  if (aFinalURI) {
+    // TODO make sure that prepath really is origin, as I expect...
+    aFinalURI->GetPrePath(reqOrigin);
+  } else {
+    // TODO will probably not be origin, but will do for now
+    mRequest->GetURL(reqOrigin);
+  }
+
+  printf("Request origin %s\n", ToNewCString(reqOrigin));
 
   // parse SecCOWL...
-  COWLParser::parseLabeledDataHeader(secCOWL, NS_LITERAL_CSTRING(""), &confidentiality, &integrity);
+  COWLParser::parseLabeledDataHeader(secCOWL, reqOrigin, &confidentiality, &integrity);
 
   if (!confidentiality) {
     printf("Conf label null, report error!\n");

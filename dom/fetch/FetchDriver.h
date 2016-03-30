@@ -91,7 +91,7 @@ private:
   FetchDriver& operator=(const FetchDriver&) = delete;
   ~FetchDriver();
 
-  bool DoCOWLCheck(InternalResponse* aResponse);
+  bool DoCOWLCheck(InternalResponse* aResponse, nsIURI* aFinalURI);
 
   nsresult ContinueFetch();
   nsresult HttpFetch();
