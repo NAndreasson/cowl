@@ -1,2 +1,2 @@
 Access-Control-Allow-Origin: *
-Sec-COWL: ctx-confidentiality http://a.com/; ctx-integrity http://b.com/; ctx-privilege http://c.com/
+Sec-COWL: ctx-confidentiality http://a.com/; ctx-integrity 'none'; ctx-privilege 'none'

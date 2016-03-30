@@ -19,19 +19,42 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
   var completedTests = 0;
   var passedTests = 0;
 
-  function start_tests(iframe) {
+  function ok_wrapper(result, desc) {
+    ok(result, desc);
+
+    completedTests++;
+
+    if (result) {
+      passedTests++;
+    }
+
+    if (completedTests == 6) {
+      is(passedTests, completedTests, "There are " + completedTests + " labeled objects tests that should pass");
+
+      SimpleTest.finish();
+    }
+  }
+
+  function labeled(iframe) {
     var wCWindow = SpecialPowers.wrap(iframe.contentWindow);
     //var wwIframe = SpecialPowers.Cu.waiveXrays(wIframe);
 
-    ok(wCWindow.COWL.confidentiality.equals(new Label("http://a.com/")), "Confidentiality label should be set according to ctx-confidentiality header");
-    ok(wCWindow.COWL.integrity.equals(new Label("http://b.com/")), "Integrity label should be set according to ctx-integrity header");
-    ok(wCWindow.COWL.privilege.asLabel.equals(new Label("http://c.com/")), "Privilege internal label should be set according to ctx-privilege header");
-    SimpleTest.finish();
+    ok_wrapper(wCWindow.COWL.confidentiality.equals(new Label("http://a.com/")), "Confidentiality label should be set according to ctx-confidentiality header");
+    ok_wrapper(wCWindow.COWL.integrity.equals(new Label()), "Integrity label should be set according to ctx-integrity header");
+    ok_wrapper(wCWindow.COWL.privilege.asLabel.equals(new Label()), "Privilege internal label should be set according to ctx-privilege header");
   }
 
+  function labeled_self(iframe) {
+    var wCWindow = SpecialPowers.wrap(iframe.contentWindow);
+
+    ok_wrapper(wCWindow.COWL.confidentiality.equals(new Label("http://example.com/")), "ctx-confidentiality should evaluate to 'self'");
+    ok_wrapper(wCWindow.COWL.integrity.equals(new Label()), "Integrity label should be set according to ctx-integrity header");
+    ok_wrapper(wCWindow.COWL.privilege.asLabel.equals(new Label()), "Privilege internal label should be set according to ctx-privilege header");
+  }
 
   </script>
-  <iframe onload="start_tests(this)" src="http://example.com/tests/dom/tests/mochitest/cowl/labeled.html"></iframe>
+  <iframe onload="labeled(this)" src="http://example.com/tests/dom/tests/mochitest/cowl/labeled.html"></iframe>
+  <iframe onload="labeled_self(this)" src="http://example.com/tests/dom/tests/mochitest/cowl/labeled_self.html"></iframe>
 </pre>
 </body>
 </html>
