@@ -398,13 +398,17 @@ GuardRead(JSCompartment *source, const nsACString& aUri)
   COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(tmpOrigin), errRes);
   // TODO, should maybe change these to nsresult?
   if (errRes.Failed()) {
-    printf("Err res failed\n");
+    printf("Could not construct principal, probably invalid\n");
+    errRes.SuppressException(); // if we do not suppress the exception everything will crash
+    return false;
   }
 
   DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
   RefPtr<Label> uriLabel  = new Label(newDSet, errRes);
   if (errRes.Failed()) {
     printf("Err res failed\n");
+    errRes.SuppressException();
+    return false;
   }
 
   RefPtr<Label> effLabel = compConfidentiality->Downgrade(*privs);
