@@ -2102,6 +2102,15 @@ nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
   docURI->GetAsciiSpec(origin);
   printf("SEC-COWL header present %s\n", ToNewCString(origin));
 
+  // TODO use the followng to get req origin
+  nsCOMPtr<nsIURI> uri;
+  nsAutoCString scheme;
+
+  rv = httpChannel->GetURI(getter_AddRefs(uri));
+  nsAutoCString reqOrigin;
+  uri->GetPrePath(reqOrigin);
+  printf("Request origin %s\n", ToNewCString(reqOrigin));
+
   nsCOMPtr<nsILoadInfo> loadInfo = httpChannel->GetLoadInfo();
 
   nsCOMPtr<nsIDOMDocument> dommyDoc;
@@ -2121,12 +2130,8 @@ nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
   RefPtr<mozilla::dom::Label> confidentiality;
   RefPtr<mozilla::dom::Label> integrity;
 
-  // TODO use the request origin?
-  /* nsAutoCString prinOrigin; */
-  /* nsresult rv = mPrincipal->GetOrigin(prinOrigin); */
-
   // parse SecCOWL...
-  COWLParser::parseLabeledDataHeader(secCOWL, NS_LITERAL_CSTRING(""), &confidentiality, &integrity);
+  COWLParser::parseLabeledDataHeader(secCOWL, reqOrigin, &confidentiality, &integrity);
 
   if (!confidentiality) {
     printf("Conf label null, report error!\n");
