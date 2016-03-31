@@ -1,0 +1,29 @@
+<iframe id="frame" src="http://example.com/tests/dom/tests/mochitest/cowl/labeled_flow_container.html" onload="ready()" frameborder="0"></iframe>
+<script type="text/javascript" charset="utf-8">
+  var wParent = SpecialPowers.wrap(parent);
+  var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+  function ready() {
+    var frame = document.getElementById('frame');
+
+    var obj = {
+      val: 'Secret'
+    };
+
+    var labels = {
+      confidentiality: new Label('http://alice.com/')
+    };
+    var labeledObject = new LabeledObject(obj, labels);
+
+    console.log('Posting obj to frame');
+    frame.contentWindow.postMessage(labeledObject, '*');
+  }
+
+  function ok_wrapper(result, desc) {
+    console.log('Inside ok_wrapper');
+    // receive result, send to parent? should be wrapped as well
+    wwParent.ok_wrapper(result, desc);
+  }
+
+
+</script>

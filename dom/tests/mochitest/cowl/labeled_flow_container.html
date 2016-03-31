@@ -1,0 +1,22 @@
+<script type="text/javascript" charset="utf-8">
+  var wParent = SpecialPowers.wrap(parent);
+  var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+  // on message, assert that unlabeled...
+  window.addEventListener('message', onMsg, false);
+  function onMsg(evt) {
+    console.log('Received a msg', evt);
+    wwParent.ok_wrapper(!COWL.isEnabled(), "COWL should not be enabled just by receiving a labeled object");
+
+    // read the protected object, make sure that labeled accordingly
+    var data = evt.data;
+    var protectedObj = data.protectedObject;
+
+    wwParent.ok_wrapper(COWL.isEnabled(), "COWL should be enabled after reading prtectedObject");
+    wwParent.ok_wrapper(COWL.confidentiality.equals(new Label('http://alice.com/')), "COWL should be enabled after reading prtectedObject");
+
+  }
+
+</script>
+
+
