@@ -1,0 +1,32 @@
+<script>
+COWL.enable();
+COWL.confidentiality = new Label('http://example.com/');
+
+var wParent = SpecialPowers.wrap(window.parent);
+var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+  function testFetch() {
+    fetch('http://example.com/tests/dom/tests/mochitest/cowl/labeled_data.html').then(function(res) {
+      wwParent.ok_wrapper(true, "Fetch: Should not be able to load labeled response when not confined");
+    }).catch(function(e) {
+      wwParent.ok_wrapper(false, "Fetch: Should not be able to load labeled response when not confined");
+    });
+  }
+
+  function testXHR() {
+    var req= new XMLHttpRequest();
+    req.addEventListener("load", function() {
+      wwParent.ok_wrapper(true, "XHR: Should not be able to load labeled response when not confined");
+    });
+    req.addEventListener("error", function() {
+      wwParent.ok_wrapper(false, "XHR: Should not be able to load labeled response when not confined");
+    });
+
+    req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/labeled_data.html");
+    req.send();
+  }
+
+  testFetch();
+  testXHR();
+
+</script>

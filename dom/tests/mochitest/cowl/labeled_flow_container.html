@@ -14,6 +14,8 @@
 
     wwParent.ok_wrapper(COWL.isEnabled(), "COWL should be enabled after reading prtectedObject");
     wwParent.ok_wrapper(COWL.confidentiality.equals(new Label('http://alice.com/')), "COWL should be enabled after reading prtectedObject");
+    wwParent.ok_wrapper(COWL.integrity.equals(new Label()), "No integrity has been specified");
+    wwParent.ok_wrapper(COWL.privilege.asLabel.equals(new Label('http://example.com/')), "COWL should be enabled after reading prtectedObject");
 
   }
 
