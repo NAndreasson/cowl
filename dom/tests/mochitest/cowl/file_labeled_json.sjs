@@ -3,6 +3,8 @@ function handleRequest(request, response) {
   response.setHeader("Access-Control-Allow-Origin", "*", false);
   response.setHeader("Content-Type", "application/labeled-json", false);
 
+  var query = request.queryString.split("=")[1];
+
   // Get some scenario id, then do different stuff depending on the case...
   var labeledObject = {
     confidentiality: "'self'",
@@ -11,6 +13,19 @@ function handleRequest(request, response) {
       val: "secret"
     }
   };
+
+  if (query == 'conf') {
+    delete labeledObject['confidentiality'];
+  }
+  if (query == 'int') {
+    delete labeledObject['confidentiality'];
+  }
+  if (query == 'obj') {
+    delete labeledObject['confidentiality'];
+  }
+  if (query == 'badint') {
+    labeledObject['integrity'] = 'http://a.com/'; // should be served from example.com so should not be valid
+  }
 
   response.write(JSON.stringify(labeledObject));
 }

@@ -2,18 +2,77 @@
   var wParent = SpecialPowers.wrap(parent);
   var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
 
-  // Create an XHR request to get the data:
-  var req = new XMLHttpRequest()
-  req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs");
-  req.responseType = "labeled-json";
-  req.onload = function (e) {
-    console.log(e);
-    var labeledObject = req.response; // is a LabeledObject
+  function goodRes() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=ok");
+    req.responseType = "labeled-json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
 
-    wwParent.ok_wrapper(labeledObject.confidentiality.equals(new Label('http://example.com/')), "Server response set conf to 'self'");
-    wwParent.ok_wrapper(labeledObject.integrity.equals(new Label('http://example.com/')), "Server response set int to 'self'");
-    wwParent.ok_wrapper(labeledObject.protectedObject['val'] === 'secret', "Make sure that object val is corrent");
-  };
+      wwParent.ok_wrapper(labeledObject.confidentiality.equals(new Label('http://example.com/')), "Server response set conf to 'self'");
+      wwParent.ok_wrapper(labeledObject.integrity.equals(new Label('http://example.com/')), "Server response set int to 'self'");
+      wwParent.ok_wrapper(labeledObject.protectedObject['val'] === 'secret', "Make sure that object val is corrent");
+    };
+    req.send();
+  }
 
-  req.send();
+  function resWithoutConf() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=conf");
+    req.responseType = "labeled-json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
+
+      wwParent.ok_wrapper(!labeledObject, 'Labeled Object should be null if conf label missing');
+    };
+    req.send();
+  }
+
+  function resWithoutInt() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=int");
+    req.responseType = "labeled-json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
+
+      wwParent.ok_wrapper(!labeledObject, 'Labeled Object should be null if int label missing');
+    };
+    req.send();
+  }
+
+  function resWithoutObj() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=obj");
+    req.responseType = "labeled-json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
+
+      wwParent.ok_wrapper(!labeledObject, 'Labeled Object should be null if object property missing from response');
+    };
+    req.send();
+  }
+
+  function resWithBadInt() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=badint");
+    req.responseType = "labeled-json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
+
+      wwParent.ok_wrapper(!labeledObject, 'Labeled Object should be null if attempting to set too strong integrity label');
+    };
+    req.send();
+  }
+
+  goodRes();
+  resWithoutConf();
+  resWithoutInt();
+  resWithoutObj();
+  resWithBadInt();
+
 </script>
