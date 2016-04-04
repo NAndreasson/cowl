@@ -621,8 +621,11 @@ protected:
   bool IsSystemXHR();
 
   bool DoCOWLCheck(nsIHttpChannel* httpChannel);
+  bool GetLabeledJSON(JSContext* aCx);
 
   void ChangeStateToDone();
+
+
 
   void StartProgressEventTimer();
 

@@ -998,89 +998,33 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx,
   }
   case XML_HTTP_RESPONSE_TYPE_LABELED_JSON:
   {
-    printf("Labeled json\n");
     if (!(mState & XML_HTTP_REQUEST_DONE)) {
       aResponse.setNull();
-      printf("Set null json\n");
       return;
     }
 
     if (mResultJSON.isUndefined()) {
-      printf("Parse... null json\n");
       aRv = CreateResponseParsedJSON(aCx);
       mResponseText.Truncate();
       if (aRv.Failed()) {
-        printf("Could not parse... null json\n");
         // Per spec, errors aren't propagated. null is returned instead.
         aRv = NS_OK;
         // It would be nice to log the error to the console. That's hard to
         // do without calling window.onerror as a side effect, though.
         JS_ClearPendingException(aCx);
         mResultJSON.setNull();
+
+        // TODO think this is appropriate, if parsing failed, return null
+        aResponse.setNull();
+        return;
       }
     }
 
-    JS::RootedObject resultJSONObj(aCx, &mResultJSON.toObject());
-
-    JS::RootedValue confidentiality(aCx);
-    if (!JS_GetProperty(aCx, resultJSONObj, "confidentiality", &confidentiality) || !confidentiality.isString()) {
-      printf("No conf\n");
+    if (!GetLabeledJSON(aCx)) {
+      // TODO report bad integrity labels and so on
+      aResponse.setNull();
+      return;
     }
-
-    JS::RootedValue integrity(aCx);
-    if (!JS_GetProperty(aCx, resultJSONObj, "integrity", &integrity) || !integrity.isString()) {
-      printf("No Integrity\n");
-    }
-
-    JS::RootedValue protectedObj(aCx);
-    if (!JS_GetProperty(aCx, resultJSONObj, "object", &protectedObj) || !protectedObj.isObject()) {
-      printf("No Object\n");
-    }
-
-    nsString confStr;
-    nsAutoJSString confJSStr;
-    if (!confJSStr.init(aCx, confidentiality)) {
-      printf("No str??\n");
-    }
-    confStr = confJSStr;
-
-    nsString intStr;
-    nsAutoJSString intJSStr;
-    if (!intJSStr.init(aCx, integrity)) {
-      printf("No str??\n");
-    }
-    intStr = intJSStr;
-    // get self, call parseLabel stuf...
-    // get the conflabel
-    nsCOMPtr<nsIURI> responseURI;
-    mChannel->GetURI(getter_AddRefs(responseURI));
-
-    nsAutoCString reqOrigin;
-    responseURI->GetPrePath(reqOrigin);
-
-       // parse SecCOWL...
-    RefPtr<Label> confLabel = COWLParser::parsePrincipalExpression(confStr, reqOrigin);
-    nsAutoString confLabelStr;
-    confLabel->Stringify(confLabelStr);
-
-    RefPtr<Label> intLabel = COWLParser::parsePrincipalExpression(intStr, reqOrigin);
-    nsAutoString intLabelStr;
-    intLabel->Stringify(intLabelStr);
-
-    printf("Printing conf label... %s \n", NS_ConvertUTF16toUTF8(confLabelStr).get());
-    printf("Printing int label... %s \n", NS_ConvertUTF16toUTF8(intLabelStr).get());
-
-    ErrorResult errRes;
-    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
-    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
-    RefPtr<Label> responseIntLabel  = new Label(newDSet, errRes);
-
-    if (!responseIntLabel->Subsumes(*intLabel)) {
-      printf("Int does not subsumes\n");
-    }
-
-    // create a labeleObject?
-    mDOMLabeledObject = new mozilla::dom::LabeledObject(protectedObj, *confLabel, *intLabel);
 
     GetOrCreateDOMReflector(aCx, mDOMLabeledObject, aResponse);
     /* JS::ExposeValueToActiveJS(mResultJSON); */
@@ -2421,6 +2365,90 @@ nsXMLHttpRequest::ChangeStateToDone()
     // This matches what IE does.
     mChannel = nullptr;
   }
+}
+
+bool
+nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
+{
+  JS::RootedObject resultJSONObj(aCx, &mResultJSON.toObject());
+
+  JS::RootedValue confidentiality(aCx);
+  if (!JS_GetProperty(aCx, resultJSONObj, "confidentiality", &confidentiality) || !confidentiality.isString()) {
+    return false;
+  }
+
+  JS::RootedValue integrity(aCx);
+  if (!JS_GetProperty(aCx, resultJSONObj, "integrity", &integrity) || !integrity.isString()) {
+    return false;
+  }
+
+  JS::RootedValue protectedObj(aCx);
+  if (!JS_GetProperty(aCx, resultJSONObj, "object", &protectedObj) || !protectedObj.isObject()) {
+    return false;
+  }
+
+  nsString confStr;
+  nsAutoJSString confJSStr;
+  confJSStr.init(aCx, confidentiality);
+  confStr = confJSStr;
+
+  nsString intStr;
+  nsAutoJSString intJSStr;
+  intJSStr.init(aCx, integrity);
+  intStr = intJSStr;
+  // get self, call parseLabel stuf...
+  // get the conflabel
+  nsCOMPtr<nsIURI> responseURI;
+  mChannel->GetURI(getter_AddRefs(responseURI));
+
+  nsAutoCString reqOrigin;
+  responseURI->GetPrePath(reqOrigin);
+
+  // parse SecCOWL...
+  RefPtr<Label> confLabel = COWLParser::parsePrincipalExpression(confStr, reqOrigin);
+  if (!confLabel) {
+    // could not parse confLabel for whatever reason, invalid format?
+    return false;
+  }
+
+  nsAutoString confLabelStr;
+  confLabel->Stringify(confLabelStr);
+
+  RefPtr<Label> intLabel = COWLParser::parsePrincipalExpression(intStr, reqOrigin);
+  if (!intLabel) {
+    return false;
+  }
+
+  nsAutoString intLabelStr;
+  intLabel->Stringify(intLabelStr);
+
+  printf("Printing conf label... %s \n", NS_ConvertUTF16toUTF8(confLabelStr).get());
+  printf("Printing int label... %s \n", NS_ConvertUTF16toUTF8(intLabelStr).get());
+
+  ErrorResult errRes;
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
+
+  if (errRes.Failed()) {
+    errRes.SuppressException();
+    return false;
+  }
+
+  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+  RefPtr<Label> responseIntLabel  = new Label(newDSet, errRes);
+
+  if (errRes.Failed()) {
+    errRes.SuppressException();
+    return false;
+  }
+
+  if (!responseIntLabel->Subsumes(*intLabel)) {
+    printf("Integrity label does not subsumes\n");
+    return false;
+  }
+    // create a labeleObject?
+  mDOMLabeledObject = new mozilla::dom::LabeledObject(protectedObj, *confLabel, *intLabel);
+
+  return true;
 }
 
 static nsresult
