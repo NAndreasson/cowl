@@ -34,6 +34,26 @@ Label::Label(DisjunctionSet &dset, ErrorResult &aRv)
   _And(dset,aRv);
 }
 
+Label::Label(const nsAString& principal, ErrorResult &aRv)
+{
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
+
+  if (aRv.Failed()) return;
+
+  DisjunctionSet dset = DisjunctionSetUtils::ConstructDset(newPrincipal);
+
+  _And(dset, aRv);
+}
+
+Label::Label(nsIPrincipal *principal, ErrorResult &aRv)
+{
+  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(principal, aRv);
+  if (aRv.Failed()) return;
+
+  DisjunctionSet dset = DisjunctionSetUtils::ConstructDset(newPrincipal);
+  _And(dset, aRv);
+}
+
 Label::~Label()
 {
 }

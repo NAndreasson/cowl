@@ -67,6 +67,8 @@ protected:
 public:
   Label();
   Label(DisjunctionSet &dset, ErrorResult &aRv);
+  Label(nsIPrincipal *principal, ErrorResult &aRv);
+  Label(const nsAString& principal, ErrorResult &aRv);
 
 
   Label* GetParentObject() const;//FIXME
