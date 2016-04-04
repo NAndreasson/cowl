@@ -1,0 +1,19 @@
+<script type="text/javascript" charset="utf-8">
+  var wParent = SpecialPowers.wrap(parent);
+  var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+  // Create an XHR request to get the data:
+  var req = new XMLHttpRequest()
+  req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs");
+  req.responseType = "labeled-json";
+  req.onload = function (e) {
+    console.log(e);
+    var labeledObject = req.response; // is a LabeledObject
+
+    wwParent.ok_wrapper(labeledObject.confidentiality.equals(new Label('http://example.com/')), "Server response set conf to 'self'");
+    wwParent.ok_wrapper(labeledObject.integrity.equals(new Label('http://example.com/')), "Server response set int to 'self'");
+    wwParent.ok_wrapper(labeledObject.protectedObject['val'] === 'secret', "Make sure that object val is corrent");
+  };
+
+  req.send();
+</script>
