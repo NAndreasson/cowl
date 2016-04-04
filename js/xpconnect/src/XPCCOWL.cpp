@@ -60,15 +60,10 @@ EnableCompartmentConfinement(JSCompartment *compartment)
   nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
 
   ErrorResult aRv;
-  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(privPrin, aRv);
-  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
-
-
-  // Role* privRole = new Role(privPrin);
-  RefPtr<Label> privileges = new Label(newDSet, aRv);
+  RefPtr<Label> privileges  = new Label(privPrin, aRv);
   MOZ_ASSERT(privileges);
-  COWL_CONFIG(compartment).SetPrivileges(privileges);
 
+  COWL_CONFIG(compartment).SetPrivileges(privileges);
 
    // Get the compartment global
   nsCOMPtr<nsIGlobalObject> global =
@@ -326,13 +321,16 @@ GuardRead(JSCompartment *compartment,
   } else {
     // compartment is not confined
     nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
-    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(privPrin, aRv);
-    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+    ErrorResult aRv;
 
-    // Role* privRole = new Role(privPrin);
-    compConfidentiality = new Label(newDSet, aRv);
+    compConfidentiality = new Label(privPrin, aRv);
+    if (aRv.Failed()) {
+      printf("Err res failed\n");
+      aRv.SuppressException();
+      return false;
+    }
+
     compIntegrity   = new Label();
-    if (aRv.Failed()) return false;
   }
 
   // If any of the labels are missing, don't allow the information flow
@@ -394,17 +392,9 @@ GuardRead(JSCompartment *source, const nsACString& aUri)
   RefPtr<Label> compIntegrity = GetCompartmentIntegrityLabel(source);
   RefPtr<Label> privs   = GetCompartmentPrivileges(source);
 
-  ErrorResult errRes;
-  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(tmpOrigin), errRes);
   // TODO, should maybe change these to nsresult?
-  if (errRes.Failed()) {
-    printf("Could not construct principal, probably invalid\n");
-    errRes.SuppressException(); // if we do not suppress the exception everything will crash
-    return false;
-  }
-
-  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
-  RefPtr<Label> uriLabel  = new Label(newDSet, errRes);
+  ErrorResult errRes;
+  RefPtr<Label> uriLabel  = new Label(NS_ConvertASCIItoUTF16(tmpOrigin), errRes);
   if (errRes.Failed()) {
     printf("Err res failed\n");
     errRes.SuppressException();

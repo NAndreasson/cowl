@@ -2426,15 +2426,7 @@ nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
   printf("Printing int label... %s \n", NS_ConvertUTF16toUTF8(intLabelStr).get());
 
   ErrorResult errRes;
-  COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
-
-  if (errRes.Failed()) {
-    errRes.SuppressException();
-    return false;
-  }
-
-  DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
-  RefPtr<Label> responseIntLabel  = new Label(newDSet, errRes);
+  RefPtr<Label> responseIntLabel  = new Label(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
 
   if (errRes.Failed()) {
     errRes.SuppressException();

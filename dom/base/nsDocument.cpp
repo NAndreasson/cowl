@@ -2705,16 +2705,17 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 
     printf("Principal origin %s\n", ToNewCString(prinOrigin));
 
-
     // construct a label, which will act as privilege and effective integrity
     // label...
     ErrorResult errRes;
-    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(prinOrigin), errRes);
-    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
     // priv label, can be used as effective integrity label as well
-    RefPtr<Label> privLabel  = new Label(newDSet, errRes);
-
-    // print url??
+    RefPtr<Label> privLabel  = new Label(NS_ConvertASCIItoUTF16(prinOrigin), errRes);
+    if (errRes.Failed()) {
+      printf("Err res failed\n");
+      errRes.SuppressException();
+      // TODO approapriate return?
+      return NS_OK;
+    }
 
     printf("SEC-COWL header is set: %s\n", secCOWLHeader.get());
 
