@@ -21,6 +21,7 @@ enum XMLHttpRequestResponseType {
   "document",
   "json",
   "text",
+  "labeled-json",
 
   // Mozilla-specific stuff
   "moz-chunked-text",
@@ -140,7 +141,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   [ChromeOnly, Exposed=Window]
   readonly attribute MozChannel? channel;
 
-  // A platform-specific identifer to represent the network interface 
+  // A platform-specific identifer to represent the network interface
   // which the HTTP request would occur on.
   [ChromeOnly, Exposed=Window]
   attribute ByteString? networkInterfaceId;

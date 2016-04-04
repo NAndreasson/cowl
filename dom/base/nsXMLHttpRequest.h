@@ -33,6 +33,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/TypedArray.h"
+#include "mozilla/dom/LabeledObject.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 
 #ifdef Status
@@ -690,6 +691,7 @@ protected:
     XML_HTTP_RESPONSE_TYPE_DOCUMENT,
     XML_HTTP_RESPONSE_TYPE_JSON,
     XML_HTTP_RESPONSE_TYPE_TEXT,
+    XML_HTTP_RESPONSE_TYPE_LABELED_JSON,
     XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT,
     XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER,
     XML_HTTP_RESPONSE_TYPE_MOZ_BLOB
@@ -698,6 +700,8 @@ protected:
   void SetResponseType(nsXMLHttpRequest::ResponseTypeEnum aType, ErrorResult& aRv);
 
   ResponseTypeEnum mResponseType;
+
+  RefPtr<mozilla::dom::LabeledObject> mDOMLabeledObject;
 
   // It is either a cached blob-response from the last call to GetResponse,
   // but is also explicitly set in OnStopRequest.

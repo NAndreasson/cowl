@@ -567,6 +567,7 @@ nsXMLHttpRequest::DetectCharset()
   if (mResponseType != XML_HTTP_RESPONSE_TYPE_DEFAULT &&
       mResponseType != XML_HTTP_RESPONSE_TYPE_TEXT &&
       mResponseType != XML_HTTP_RESPONSE_TYPE_JSON &&
+      mResponseType != XML_HTTP_RESPONSE_TYPE_LABELED_JSON &&
       mResponseType != XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT) {
     return NS_OK;
   }
@@ -580,7 +581,7 @@ nsXMLHttpRequest::DetectCharset()
     mResponseCharset.AssignLiteral("UTF-8");
   }
 
-  if (mResponseType == XML_HTTP_RESPONSE_TYPE_JSON &&
+  if ((mResponseType == XML_HTTP_RESPONSE_TYPE_JSON || mResponseType == XML_HTTP_RESPONSE_TYPE_LABELED_JSON) &&
       !mResponseCharset.EqualsLiteral("UTF-8")) {
     // The XHR spec says only UTF-8 is supported for responseType == "json"
     LogMessage("JSONCharsetWarning", GetOwner());
@@ -772,6 +773,9 @@ NS_IMETHODIMP nsXMLHttpRequest::GetResponseType(nsAString& aResponseType)
   case XML_HTTP_RESPONSE_TYPE_JSON:
     aResponseType.AssignLiteral("json");
     break;
+  case XML_HTTP_RESPONSE_TYPE_LABELED_JSON:
+    aResponseType.AssignLiteral("labeled-json");
+    break;
   case XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT:
     aResponseType.AssignLiteral("moz-chunked-text");
     break;
@@ -804,6 +808,7 @@ nsXMLHttpRequest::StaticAssertions()
   ASSERT_ENUM_EQUAL(Document, DOCUMENT);
   ASSERT_ENUM_EQUAL(Json, JSON);
   ASSERT_ENUM_EQUAL(Text, TEXT);
+  ASSERT_ENUM_EQUAL(Labeled_json, LABELED_JSON);
   ASSERT_ENUM_EQUAL(Moz_chunked_text, CHUNKED_TEXT);
   ASSERT_ENUM_EQUAL(Moz_chunked_arraybuffer, CHUNKED_ARRAYBUFFER);
   ASSERT_ENUM_EQUAL(Moz_blob, MOZ_BLOB);
@@ -813,6 +818,8 @@ nsXMLHttpRequest::StaticAssertions()
 
 NS_IMETHODIMP nsXMLHttpRequest::SetResponseType(const nsAString& aResponseType)
 {
+  printf("COWL %s\n", ToNewCString(aResponseType));
+
   nsXMLHttpRequest::ResponseTypeEnum responseType;
   if (aResponseType.IsEmpty()) {
     responseType = XML_HTTP_RESPONSE_TYPE_DEFAULT;
@@ -832,6 +839,8 @@ NS_IMETHODIMP nsXMLHttpRequest::SetResponseType(const nsAString& aResponseType)
     responseType = XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER;
   } else if (aResponseType.EqualsLiteral("moz-blob")) {
     responseType = XML_HTTP_RESPONSE_TYPE_MOZ_BLOB;
+  } else if (aResponseType.EqualsLiteral("labeled-json")) {
+    responseType = XML_HTTP_RESPONSE_TYPE_LABELED_JSON;
   } else {
     return NS_OK;
   }
@@ -985,6 +994,98 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx,
     }
     JS::ExposeValueToActiveJS(mResultJSON);
     aResponse.set(mResultJSON);
+    return;
+  }
+  case XML_HTTP_RESPONSE_TYPE_LABELED_JSON:
+  {
+    printf("Labeled json\n");
+    if (!(mState & XML_HTTP_REQUEST_DONE)) {
+      aResponse.setNull();
+      printf("Set null json\n");
+      return;
+    }
+
+    if (mResultJSON.isUndefined()) {
+      printf("Parse... null json\n");
+      aRv = CreateResponseParsedJSON(aCx);
+      mResponseText.Truncate();
+      if (aRv.Failed()) {
+        printf("Could not parse... null json\n");
+        // Per spec, errors aren't propagated. null is returned instead.
+        aRv = NS_OK;
+        // It would be nice to log the error to the console. That's hard to
+        // do without calling window.onerror as a side effect, though.
+        JS_ClearPendingException(aCx);
+        mResultJSON.setNull();
+      }
+    }
+
+    JS::RootedObject resultJSONObj(aCx, &mResultJSON.toObject());
+
+    JS::RootedValue confidentiality(aCx);
+    if (!JS_GetProperty(aCx, resultJSONObj, "confidentiality", &confidentiality) || !confidentiality.isString()) {
+      printf("No conf\n");
+    }
+
+    JS::RootedValue integrity(aCx);
+    if (!JS_GetProperty(aCx, resultJSONObj, "integrity", &integrity) || !integrity.isString()) {
+      printf("No Integrity\n");
+    }
+
+    JS::RootedValue protectedObj(aCx);
+    if (!JS_GetProperty(aCx, resultJSONObj, "object", &protectedObj) || !protectedObj.isObject()) {
+      printf("No Object\n");
+    }
+
+    nsString confStr;
+    nsAutoJSString confJSStr;
+    if (!confJSStr.init(aCx, confidentiality)) {
+      printf("No str??\n");
+    }
+    confStr = confJSStr;
+
+    nsString intStr;
+    nsAutoJSString intJSStr;
+    if (!intJSStr.init(aCx, integrity)) {
+      printf("No str??\n");
+    }
+    intStr = intJSStr;
+    // get self, call parseLabel stuf...
+    // get the conflabel
+    nsCOMPtr<nsIURI> responseURI;
+    mChannel->GetURI(getter_AddRefs(responseURI));
+
+    nsAutoCString reqOrigin;
+    responseURI->GetPrePath(reqOrigin);
+
+       // parse SecCOWL...
+    RefPtr<Label> confLabel = COWLParser::parsePrincipalExpression(confStr, reqOrigin);
+    nsAutoString confLabelStr;
+    confLabel->Stringify(confLabelStr);
+
+    RefPtr<Label> intLabel = COWLParser::parsePrincipalExpression(intStr, reqOrigin);
+    nsAutoString intLabelStr;
+    intLabel->Stringify(intLabelStr);
+
+    printf("Printing conf label... %s \n", NS_ConvertUTF16toUTF8(confLabelStr).get());
+    printf("Printing int label... %s \n", NS_ConvertUTF16toUTF8(intLabelStr).get());
+
+    ErrorResult errRes;
+    COWLPrincipal newPrincipal = COWLPrincipalUtils::ConstructPrincipal(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
+    DisjunctionSet newDSet = DisjunctionSetUtils::ConstructDset(newPrincipal);
+    RefPtr<Label> responseIntLabel  = new Label(newDSet, errRes);
+
+    if (!responseIntLabel->Subsumes(*intLabel)) {
+      printf("Int does not subsumes\n");
+    }
+
+    // create a labeleObject?
+    mDOMLabeledObject = new mozilla::dom::LabeledObject(protectedObj, *confLabel, *intLabel);
+
+    GetOrCreateDOMReflector(aCx, mDOMLabeledObject, aResponse);
+    /* JS::ExposeValueToActiveJS(mResultJSON); */
+    /* aResponse.set(mResultJSON); */
+    printf("Set response not parse... null json\n");
     return;
   }
   default:
@@ -1729,6 +1830,7 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
   } else if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_DEFAULT ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_TEXT ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_JSON ||
+             xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_LABELED_JSON ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT) {
     NS_ASSERTION(!xmlHttpRequest->mResponseXML,
                  "We shouldn't be parsing a doc here");
