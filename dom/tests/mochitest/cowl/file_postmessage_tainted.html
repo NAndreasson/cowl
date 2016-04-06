@@ -1,30 +1,20 @@
-<script>
-COWL.enable();
-COWL.confidentiality = new Label('http://alice.com/');
+<iframe onload="confine(this)" src="http://example.com/tests/dom/tests/mochitest/cowl/file_postmessage_tainted1.html"></iframe>
 
+<script>
 var wParent = SpecialPowers.wrap(window.parent);
 var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
 
-var postMsgReceived = false;
-
-  // TEST CASE the iframe should be able to communicate with this context through regular postMessage - same label so should be considered "safe" to pass a message between
-function start_countdown() {
-  // In general a bad idea to set timeout in tests, not sure how to test this particular thing without it though.
-  setTimeout(function() {
-    if (postMsgReceived) {
-      wwParent.ok_wrapper(true, "PostMessage message should be received");
-    } else {
-      wwParent.ok_wrapper(false, "PostMessage message should be received");
-    }
-  }, 1000);
+function msgReceived() {
+  wwParent.ok_wrapper(true, "PostMessage message should be received");
 }
 
-function receiveMessage(event)
-{
-  postMsgReceived = true;
-}
+// TEST CASE the iframe should be able to communicate with this context through regular postMessage - same label so should be considered "safe" to pass a message between
+function confine(frame) {
+  COWL.enable();
+  COWL.confidentiality = new Label('http://alice.com/');
 
-window.addEventListener("message", receiveMessage, false);
+  // pass a message...
+  frame.contentWindow.postMessage('Test', '*');
+}
 
 </script>
-<iframe src="file_postmessage_tainted1.html"></iframe>

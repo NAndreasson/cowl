@@ -1,0 +1,9 @@
+<body>
+  <script type="text/javascript" charset="utf-8">
+  // Effective confidentialtiy label should be public, make sure that we can post messages to other contexts...
+    COWL.enable();
+    COWL.confidentiality = new Label(window.location.origin);
+
+    parent.postMessage('Test', '*');
+  </script>
+</body>

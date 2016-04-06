@@ -1,11 +1,14 @@
 <script>
-COWL.enable();
-COWL.confidentiality = new Label('http://alice.com/');
-
 var wParent = SpecialPowers.wrap(window.parent);
 var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
 
-wwParent.start_countdown();
-window.parent.postMessage({ msg: "Test" }, "*");
+COWL.enable();
+COWL.confidentiality = new Label('http://alice.com/');
+
+window.addEventListener("message", receiveMessage, false);
+function receiveMessage(event)
+{
+  wwParent.msgReceived();
+}
 
 </script>

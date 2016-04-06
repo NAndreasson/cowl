@@ -1,0 +1,12 @@
+<script type="text/javascript" charset="utf-8">
+var wParent = SpecialPowers.wrap(window.parent);
+var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+window.addEventListener("message", receiveMessage, false);
+function receiveMessage(event)
+{
+  wwParent.ok_wrapper(true, "Received mesage...");
+}
+</script>
+<iframe src="http://example.org/tests/dom/tests/mochitest/cowl/file_confined.html" frameborder="0"></iframe>
+
