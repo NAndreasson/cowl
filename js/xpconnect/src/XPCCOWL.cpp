@@ -90,12 +90,6 @@ EnableCompartmentConfinement(JSCompartment *compartment)
 
 }
 
-NS_EXPORT_(bool)
-IsCompartmentConfined(JSCompartment *compartment)
-{
-  MOZ_ASSERT(compartment);
-  return COWL_CONFIG(compartment).isEnabled();
-}
 
 #define DEFINE_SET_LABEL(name)                                      \
   NS_EXPORT_(void)                                                  \
@@ -165,6 +159,81 @@ GetCompartmentPrivileges(JSCompartment*compartment)
 
   return privs.forget();
 }
+
+NS_EXPORT_(bool)
+IsCompartmentConfined(JSCompartment *compartment)
+{
+  MOZ_ASSERT(compartment);
+  return COWL_CONFIG(compartment).isEnabled();
+}
+
+already_AddRefed<mozilla::dom::Label>
+EffectiveConfidentialityLabel(JSCompartment *compartment)
+{
+  MOZ_ASSERT(compartment);
+
+  RefPtr<Label> effectiveConf;
+
+  if (IsCompartmentConfined(compartment)) {
+    // get current confidentality label...
+    RefPtr<Label> conf = GetCompartmentConfidentialityLabel(compartment);
+    RefPtr<Label> privs = GetCompartmentPrivileges(compartment);
+
+    effectiveConf = conf->Downgrade(*privs);
+  } else {
+    effectiveConf = new Label();
+  }
+
+  return effectiveConf.forget();
+}
+
+already_AddRefed<mozilla::dom::Label>
+EffectiveIntegrityLabel(JSCompartment *compartment)
+{
+  MOZ_ASSERT(compartment);
+
+  RefPtr<Label> effectiveIntegrity;
+
+  if (IsCompartmentConfined(compartment)) {
+    // get current confidentality label...
+    RefPtr<Label> integrity = GetCompartmentIntegrityLabel(compartment);
+    RefPtr<Label> privs = GetCompartmentPrivileges(compartment);
+
+    effectiveIntegrity = integrity->Upgrade(*privs);
+  } else {
+    // Should be compartment principal
+    nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
+    ErrorResult aRv;
+    effectiveIntegrity = new Label(privPrin, aRv);
+    MOZ_ASSERT(effectiveIntegrity);
+  }
+
+  return effectiveIntegrity.forget();
+}
+
+already_AddRefed<mozilla::dom::Label>
+UpgradedConfidentialityLabel(JSCompartment *compartment)
+{
+  MOZ_ASSERT(compartment);
+
+  RefPtr<Label> upgradedConf;
+
+  if (IsCompartmentConfined(compartment)) {
+    // get current confidentality label...
+    RefPtr<Label> conf = GetCompartmentConfidentialityLabel(compartment);
+    RefPtr<Label> privs = GetCompartmentPrivileges(compartment);
+    upgradedConf = conf->Upgrade(*privs);
+  } else {
+    // Should be compartment principal
+    nsCOMPtr<nsIPrincipal> privPrin = GetCompartmentPrincipal(compartment);
+    ErrorResult aRv;
+    upgradedConf = new Label(privPrin, aRv);
+    MOZ_ASSERT(upgradedConf);
+  }
+
+  return upgradedConf.forget();
+}
+
 
 NS_EXPORT_(bool)
 LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
@@ -415,6 +484,42 @@ GuardRead(JSCompartment *source, const nsACString& aUri)
   printf("Other GuardRead <%s,%s> \n",
       NS_ConvertUTF16toUTF8(compConfidentialityStr).get(),
       NS_ConvertUTF16toUTF8(compIntegrityStr).get());
+
+  return true;
+}
+
+NS_EXPORT_(bool)
+CanFlowTo(JSCompartment *fromComp, JSCompartment *toComp)
+{
+  RefPtr<Label> fromEffectiveConf = EffectiveConfidentialityLabel(fromComp);
+  RefPtr<Label> fromEffectiveInt = EffectiveIntegrityLabel(fromComp);
+
+  nsAutoString fromConfStr, fromIntStr;
+  fromEffectiveConf->Stringify(fromConfStr);
+  fromEffectiveInt->Stringify(fromIntStr);
+
+  printf("From compartment conf and int <%s,%s> \n",
+      NS_ConvertUTF16toUTF8(fromConfStr).get(),
+      NS_ConvertUTF16toUTF8(fromIntStr).get());
+
+  RefPtr<Label> toConf = UpgradedConfidentialityLabel(toComp);
+  /* RefPtr<Label> toEffectiveInt = EffectiveIntegrityLabel(toComp); */
+  RefPtr<Label> toEffectiveInt;
+  if (IsCompartmentConfined(toComp)) {
+    toEffectiveInt = GetCompartmentIntegrityLabel(toComp);
+  } else {
+    toEffectiveInt = new Label();
+  }
+
+  nsAutoString toConfStr, toIntStr;
+  toConf->Stringify(toConfStr);
+  toEffectiveInt->Stringify(toIntStr);
+
+  printf("To compartment conf and int <%s,%s> \n",
+      NS_ConvertUTF16toUTF8(toConfStr).get(),
+      NS_ConvertUTF16toUTF8(toIntStr).get());
+
+  if (!toConf->Subsumes(*fromEffectiveConf) || !fromEffectiveInt->Subsumes(*toEffectiveInt)) return false;
 
   return true;
 }

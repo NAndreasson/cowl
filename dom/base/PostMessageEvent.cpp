@@ -128,7 +128,7 @@ PostMessageEvent::Run()
   JSCompartment *fromCompartment = js::GetObjectCompartment(sourceWindow->GetWrapperPreserveColor());
   JSCompartment *toCompartment = js::GetObjectCompartment(targetWindow->GetWrapperPreserveColor());
   // see if can flow to...
-  bool canFlowTo = xpc::cowl::GuardRead(toCompartment, fromCompartment, false);
+  bool canFlowTo = xpc::cowl::CanFlowTo(fromCompartment, toCompartment);
   if (!canFlowTo) {
     printf("Guard read failed");
     return NS_OK;
