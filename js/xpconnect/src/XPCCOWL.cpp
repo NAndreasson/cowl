@@ -256,21 +256,9 @@ LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
   if (!isTopLevelBrowsingContext) return false;
   // calculate effective label
   RefPtr<Label> effectiveLabel = confidentiality.Downgrade(*privs);
-  DisjunctionSetArray *newLabelRoles = effectiveLabel->GetDirectRoles();
-  // contains more than one disjunctive set
-  if (newLabelRoles->Length() > 1) {
-    return true;
-  }
 
-  // the disjuntive set needs to contain a originprincipal
-  if (newLabelRoles->Length() == 1) {
-    DisjunctionSet& role = newLabelRoles->ElementAt(0);
-    if (!DisjunctionSetUtils::ContainsOriginPrincipal(role)) {
-      return true;
-    }
-  }
-
-  return false;
+  // if not empty then considered stuck
+  return !effectiveLabel->IsEmpty();
 }
 
 // Check if information can flow from the compartment to an object labeled with
