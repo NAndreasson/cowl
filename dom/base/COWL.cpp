@@ -224,14 +224,26 @@ COWL::SetPrivilege(const GlobalObject& global, JSContext* cx,
   JSCompartment *compartment =
     js::GetObjectCompartment(global.Get());
   MOZ_ASSERT(compartment);
-  if (priv) {
-    RefPtr<Label> newPrivs = priv->GetAsLabel(aRv);
-    if (aRv.Failed()) return;
-    COWL_CONFIG(compartment).SetPrivileges(newPrivs);
-  } else {
-    // dropping privileges:
-    COWL_CONFIG(compartment).SetPrivileges(nullptr);
+
+  if (!priv) return;
+
+  // get current conf label...
+  RefPtr<Label> currentLabel = GetConfidentiality(global, cx, aRv);
+  if (aRv.Failed()) return;
+  if (!currentLabel) {
+    JSErrorResult(cx, aRv, "Failed to get current confidentiality label.");
+    return;
   }
+
+  RefPtr<Label> newPrivs = priv->GetAsLabel(aRv);
+  if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *currentLabel, newPrivs)) {
+    JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
+    return;
+  }
+
+
+  if (aRv.Failed()) return;
+  COWL_CONFIG(compartment).SetPrivileges(newPrivs);
 }
 
 // Helper for setting the ErrorResult to a string.  This function
