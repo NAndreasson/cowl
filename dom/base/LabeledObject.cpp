@@ -184,11 +184,14 @@ LabeledObject::GetProtectedObject(JSContext* cx, JS::MutableHandle<JSObject*> re
   // the current confidentiality label in context which called protectedObject
   RefPtr<Label> compConfidentiality = xpc::cowl::GetCompartmentConfidentialityLabel(compartment);
   RefPtr<Label> tmpConfLabel = compConfidentiality->And(*mConfidentiality, aRv);
+  if (aRv.Failed()) return;
+
   RefPtr<Label> newConfLabel = tmpConfLabel->Downgrade(*privs);
 
   if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *newConfLabel, privs)) {
     COWL::JSErrorResult(cx, aRv,
       "SecurityError: Will result in stuck-context, please use an iFrame");
+    return;
   }
 
   // set to new conf label
