@@ -2684,6 +2684,7 @@ nsDocument::ApplySettingsFromCSP(bool aSpeculative)
 nsresult
 nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 {
+  printf("INIT COWL in nsDocument\n");
   // get headers etc
   // look to see if SEC-COWL present!
   nsAutoCString secCOWLHeader;
@@ -2746,14 +2747,32 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
       return NS_OK;
     }
 
-    // TODO
+    bool topLevel = false;
+    if (docShell) {
+      // check for parent...
+      nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+      docShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
+      if (!parentAsItem) {
+        printf("Top level context\n");
+        topLevel = true;
+      }
+    }
 
-    /* if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *ctxConfidentiality, ctxPrivilege)) { */
-    /*   printf("Will result in stuck context\n"); */
-    /* } */
+    // Check for stuck top-level context, the effective conf label needs to be
+    // empty
+    RefPtr<Label> effectiveLabel = confidentiality->Downgrade(*privilege);
+    if (topLevel && !effectiveLabel->IsEmpty()) {
+      // stuck context?
+      printf("Would be stuck?\n");
+      aChannel->Cancel(NS_ERROR_COWL_CTX);
+      return NS_OK;
+    }
 
+    // Tryiing to create to strong integrity label if fails
     if (!privLabel->Subsumes(*integrity)) {
       printf("Integrity label does not subsumes?\n");
+      aChannel->Cancel(NS_ERROR_COWL_CTX);
+      return NS_OK;
     }
 
     // Store parsed labels on the document, compartment seems to not be created yet ..
