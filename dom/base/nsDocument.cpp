@@ -9896,6 +9896,21 @@ nsDocument::MaybePreconnect(nsIURI* aOrigURI, mozilla::CORSMode aCORSMode)
       return;
   }
 
+  nsAutoCString linkOrigin;
+  aOrigURI->GetPrePath(linkOrigin);
+  printf("In maybe preconnect %s\n", ToNewCString(linkOrigin));
+
+  JSObject *obj = GetWrapperPreserveColor();
+  if (obj) {
+    // get compartment
+    JSCompartment *comp = js::GetObjectCompartment(obj);
+    bool canFlowTo = xpc::cowl::GuardRead(comp, linkOrigin);
+    if (!canFlowTo) {
+      printf("Preconnect not allowed in this case\n");
+      return;
+    }
+  }
+
   // The URI created here is used in 2 contexts. One is nsISpeculativeConnect
   // which ignores the path and uses only the origin. The other is for the
   // document mPreloadedPreconnects de-duplication hash. Anonymous vs
