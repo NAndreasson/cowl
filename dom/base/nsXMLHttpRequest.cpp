@@ -246,6 +246,7 @@ nsXMLHttpRequest::nsXMLHttpRequest()
     mFirstStartRequestSeen(false),
     mInLoadProgressEvent(false),
     mResultJSON(JS::UndefinedValue()),
+    mResultLabeledJson(JS::UndefinedValue()),
     mResultArrayBuffer(nullptr),
     mIsMappedArrayBuffer(false),
     mXPCOMifier(nullptr)
@@ -268,6 +269,7 @@ nsXMLHttpRequest::~nsXMLHttpRequest()
   mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
 
   mResultJSON.setUndefined();
+  mResultLabeledJson.setUndefined();
   mResultArrayBuffer = nullptr;
   mozilla::DropJSObjects(this);
 }
@@ -361,12 +363,14 @@ nsXMLHttpRequest::ResetResponse()
   mResponseXML = nullptr;
   mResponseBody.Truncate();
   mResponseText.Truncate();
+  mResponseLabeledJson.Truncate();
   mResponseBlob = nullptr;
   mDOMBlob = nullptr;
   mBlobSet = nullptr;
   mResultArrayBuffer = nullptr;
   mArrayBufferBuilder.reset();
   mResultJSON.setUndefined();
+  mResultLabeledJson.setUndefined();
   mDataAvailable = 0;
   mLoadTransferred = 0;
   mResponseBodyDecodedPos = 0;
@@ -594,6 +598,49 @@ nsXMLHttpRequest::DetectCharset()
 }
 
 nsresult
+nsXMLHttpRequest::AppendToResponseLabeledJson(const char * aSrcBuffer,
+                                       uint32_t aSrcBufferLen)
+{
+  NS_ENSURE_STATE(mDecoder);
+
+  int32_t destBufferLen;
+  nsresult rv = mDecoder->GetMaxLength(aSrcBuffer, aSrcBufferLen,
+                                       &destBufferLen);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  uint32_t size = mResponseLabeledJson.Length() + destBufferLen;
+  if (size < (uint32_t)destBufferLen) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  if (!mResponseLabeledJson.SetCapacity(size, fallible)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  char16_t* destBuffer = mResponseLabeledJson.BeginWriting() + mResponseLabeledJson.Length();
+
+  CheckedInt32 totalChars = mResponseLabeledJson.Length();
+
+  // This code here is basically a copy of a similar thing in
+  // nsScanner::Append(const char* aBuffer, uint32_t aLen).
+  int32_t srclen = (int32_t)aSrcBufferLen;
+  int32_t destlen = (int32_t)destBufferLen;
+  rv = mDecoder->Convert(aSrcBuffer,
+                         &srclen,
+                         destBuffer,
+                         &destlen);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  totalChars += destlen;
+  if (!totalChars.isValid()) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  mResponseLabeledJson.SetLength(totalChars.value());
+  return NS_OK;
+}
+
+nsresult
 nsXMLHttpRequest::AppendToResponseText(const char * aSrcBuffer,
                                        uint32_t aSrcBufferLen)
 {
@@ -701,6 +748,26 @@ nsXMLHttpRequest::GetResponseText(nsString& aResponseText, ErrorResult& aRv)
   }
 
   aResponseText = mResponseText;
+}
+
+nsresult
+nsXMLHttpRequest::CreateResponseParsedLabeledJSON(JSContext* aCx)
+{
+  if (!aCx) {
+    return NS_ERROR_FAILURE;
+  }
+  RootJSResultObjects();
+
+  // The Unicode converter has already zapped the BOM if there was one
+  JS::Rooted<JS::Value> value(aCx);
+  if (!JS_ParseJSON(aCx,
+                    static_cast<const char16_t*>(mResponseLabeledJson.get()), mResponseLabeledJson.Length(),
+                    &value)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mResultLabeledJson = value;
+  return NS_OK;
 }
 
 nsresult
@@ -1003,16 +1070,16 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx,
       return;
     }
 
-    if (mResultJSON.isUndefined()) {
-      aRv = CreateResponseParsedJSON(aCx);
-      mResponseText.Truncate();
+    if (mResultLabeledJson.isUndefined()) {
+      aRv = CreateResponseParsedLabeledJSON(aCx);
+      mResponseLabeledJson.Truncate();
       if (aRv.Failed()) {
         // Per spec, errors aren't propagated. null is returned instead.
         aRv = NS_OK;
         // It would be nice to log the error to the console. That's hard to
         // do without calling window.onerror as a side effect, though.
         JS_ClearPendingException(aCx);
-        mResultJSON.setNull();
+        mResultLabeledJson.setNull();
 
         // TODO think this is appropriate, if parsing failed, return null
         aResponse.setNull();
@@ -1741,9 +1808,22 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
     return NS_ERROR_FAILURE;
   }
 
+  nsAutoCString contentType;
+  // assume that mChannel is never null...
+  xmlHttpRequest->mChannel->GetContentType(contentType);
+
+  bool isLabeledJson = false;
+  if (contentType.EqualsLiteral("application/labeled-json")) {
+    printf("Labele JSON was returned!\n");
+    // parse as labeled json...
+    isLabeledJson = true;
+  }
+
   nsresult rv = NS_OK;
 
-  if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB ||
+  if (isLabeledJson || xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_LABELED_JSON) {
+    xmlHttpRequest->AppendToResponseLabeledJson(fromRawSegment, count);
+  } else if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB ||
       xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_MOZ_BLOB) {
     if (!xmlHttpRequest->mDOMBlob) {
       if (!xmlHttpRequest->mBlobSet) {
@@ -1774,7 +1854,6 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
   } else if (xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_DEFAULT ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_TEXT ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_JSON ||
-             xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_LABELED_JSON ||
              xmlHttpRequest->mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT) {
     NS_ASSERTION(!xmlHttpRequest->mResponseXML,
                  "We shouldn't be parsing a doc here");
@@ -2370,7 +2449,7 @@ nsXMLHttpRequest::ChangeStateToDone()
 bool
 nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
 {
-  JS::RootedObject resultJSONObj(aCx, &mResultJSON.toObject());
+  JS::RootedObject resultJSONObj(aCx, &mResultLabeledJson.toObject());
 
   JS::RootedValue confidentiality(aCx);
   if (!JS_GetProperty(aCx, resultJSONObj, "confidentiality", &confidentiality) || !confidentiality.isString()) {

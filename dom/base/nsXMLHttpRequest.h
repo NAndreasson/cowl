@@ -600,6 +600,7 @@ public:
 protected:
   nsresult DetectCharset();
   nsresult AppendToResponseText(const char * aBuffer, uint32_t aBufferLen);
+  nsresult AppendToResponseLabeledJson(const char * aBuffer, uint32_t aBufferLen);
   static NS_METHOD StreamReaderFunc(nsIInputStream* in,
                 void* closure,
                 const char* fromRawSegment,
@@ -607,6 +608,7 @@ protected:
                 uint32_t count,
                 uint32_t *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
+  nsresult CreateResponseParsedLabeledJSON(JSContext* aCx);
   void CreatePartialBlob(ErrorResult& aRv);
   bool CreateDOMBlob(nsIRequest *request);
   // Change the state of the object with this. The broadcast argument
@@ -672,6 +674,7 @@ protected:
   // accessed.
   // Only used for DEFAULT and TEXT responseTypes.
   nsString mResponseText;
+  nsString mResponseLabeledJson;
 
   // For DEFAULT responseType we use this to keep track of how far we've
   // lazily decoded from mResponseBody to mResponseText
@@ -798,6 +801,7 @@ protected:
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
   JS::Heap<JS::Value> mResultJSON;
+  JS::Heap<JS::Value> mResultLabeledJson;
 
   mozilla::ArrayBufferBuilder mArrayBufferBuilder;
   JS::Heap<JSObject*> mResultArrayBuffer;
