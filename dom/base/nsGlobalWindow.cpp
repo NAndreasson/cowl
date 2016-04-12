@@ -2605,6 +2605,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         xpc::cowl::SetCompartmentConfidentialityLabel(compartment, ctxConfidentiality);
         xpc::cowl::SetCompartmentIntegrityLabel(compartment, ctxIntegrity);
         xpc::cowl::SetCompartmentPrivileges(compartment, ctxPrivilege);
+
+        // recompute flags...
+        xpc::cowl::RefineCompartmentFlags(compartment);
       }
 
       mCreatingInnerWindow = false;
