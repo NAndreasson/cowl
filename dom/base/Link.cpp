@@ -55,19 +55,22 @@ Link::TryDNSPrefetch()
   printf("Trying DNS prefetch...\n");
   nsCOMPtr<nsIURI> hrefURI(GetURI());
 
-  if (hrefURI) {
+  if (hrefURI && mElement->OwnerDoc()) {
     nsAutoCString linkOrigin;
     hrefURI->GetPrePath(linkOrigin);
 
     printf("DNS prefetch %s\n", ToNewCString(linkOrigin));
 
     nsIDocument *doc = mElement->OwnerDoc();
-    JSCompartment *comp = js::GetObjectCompartment(doc->GetWrapperPreserveColor());
+    JSObject* wrapper = doc->GetWrapperPreserveColor();
+    if (wrapper) {
+      JSCompartment *comp = js::GetObjectCompartment(wrapper);
 
-    bool canFlowTo = xpc::cowl::GuardRead(comp, linkOrigin);
-    if (!canFlowTo) {
-      printf("DNS prefetching not alloed in this case\n");
-      return;
+      bool canFlowTo = xpc::cowl::GuardRead(comp, linkOrigin);
+      if (!canFlowTo) {
+        printf("DNS prefetching not alloed in this case\n");
+        return;
+      }
     }
   }
 
