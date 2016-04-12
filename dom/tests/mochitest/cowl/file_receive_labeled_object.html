@@ -69,10 +69,38 @@
     req.send();
   }
 
+  function badResponseTypeJSON() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=ok");
+    req.responseType = "json";
+    req.onload = function (e) {
+      var labeledObject = req.response; // is a LabeledObject
+      wwParent.ok_wrapper(!labeledObject, 'Should not be able to access labeled json by changing response type');
+    };
+    req.send();
+
+  }
+
+  function badMissingResponseType() {
+    // Create an XHR request to get the data:
+    var req = new XMLHttpRequest()
+      req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_json.sjs?q=ok");
+    req.onload = function (e) {
+      wwParent.ok_wrapper(!req.response, 'Should not be able to access labeled json by changing response type');
+      wwParent.ok_wrapper(!req.responseText, 'Should not be able to access labeled json by changing response type');
+    };
+    req.send();
+
+
+  }
+
   goodRes();
   resWithoutConf();
   resWithoutInt();
   resWithoutObj();
   resWithBadInt();
+  badResponseTypeJSON();
+  badMissingResponseType();
 
 </script>
