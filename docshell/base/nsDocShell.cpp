@@ -9676,6 +9676,12 @@ nsDocShell::InternalLoad(nsIURI* aURI,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  printf("In Internalload...\n");
+  nsAutoCString loadOrigin;
+  if (aURI) {
+    aURI->GetAsciiSpec(loadOrigin);
+    printf("URI is... %s \n", ToNewCString(loadOrigin));
+  }
   rv = NS_CheckContentLoadPolicy(contentType,
                                  aURI,
                                  loadingPrincipal,
@@ -9690,6 +9696,19 @@ nsDocShell::InternalLoad(nsIURI* aURI,
     }
 
     return NS_ERROR_CONTENT_BLOCKED;
+  }
+
+  // COWL related checks to block window.location and link loading? LOAD_NORMAL
+  // when user navigates by changing URL in the address bar?
+  if (aLoadType != LOAD_NORMAL && aURI && mScriptGlobal && mScriptGlobal->GetGlobalJSObject()) {
+    printf("COWL check in internal load\n");
+    JSCompartment *compartment = js::GetObjectCompartment(mScriptGlobal->GetGlobalJSObject());
+    nsAutoCString reqOrigin;
+    aURI->GetPrePath(reqOrigin);
+    if (!xpc::cowl::GuardRead(compartment, reqOrigin)) {
+      printf("Can not flow to\n");
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
   }
 
   nsCOMPtr<nsISupports> owner(aOwner);
@@ -13679,15 +13698,15 @@ nsDocShell::OnOverLink(nsIContent* aContent,
   printf("On over link: %s\n", ToNewCString(origin));
 
   // COWL related check - the idea is to avoid leaking data through predictions and prefetching when COWL is enabled. Not sure about the details, will do more research on this.
-  nsIDocument* doc = mContentViewer->GetDocument();
-  if (doc && doc->GetWrapperPreserveColor()) {
-    JSObject* docObj = doc->GetWrapperPreserveColor();
-    JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
-    if (xpc::cowl::IsCompartmentConfined(aCompartment)) {
-      printf("Compartment is enabled return.. \n");
-      return NS_OK;
-    }
-  }
+  /* nsIDocument* doc = mContentViewer->GetDocument(); */
+  /* if (doc && doc->GetWrapperPreserveColor()) { */
+  /*   JSObject* docObj = doc->GetWrapperPreserveColor(); */
+  /*   JSCompartment *aCompartment = js::GetObjectCompartment(docObj); */
+  /*   if (xpc::cowl::IsCompartmentConfined(aCompartment)) { */
+  /*     printf("Compartment is enabled return.. \n"); */
+  /*     return NS_OK; */
+  /*   } */
+  /* } */
 
   nsCOMPtr<nsIWebBrowserChrome2> browserChrome2 = do_GetInterface(mTreeOwner);
   nsresult rv = NS_ERROR_FAILURE;
