@@ -247,7 +247,6 @@ LabeledObject::ReadStructuredClone(JSContext* cx,
   lbs->mLabeledObjectList.RemoveElementAt(idx);
 
   ErrorResult aRv;
-  //RefPtr<File> Object       = labeledObject->Object();
   RefPtr<Label> confidentiality   = labeledObject->Confidentiality();
   RefPtr<Label> integrity     = labeledObject->Integrity();
 
