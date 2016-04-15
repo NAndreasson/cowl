@@ -2516,7 +2516,12 @@ nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
     printf("Integrity label does not subsumes\n");
     return false;
   }
-    // create a labeleObject?
+
+  // enabled COWL
+  JSCompartment* compartment = js::GetContextCompartment(aCx);
+  xpc::cowl::EnableCompartmentConfinement(compartment);
+  js::RecomputeWrappers(aCx, js::AllCompartments(), js::AllCompartments());
+
   mDOMLabeledObject = new mozilla::dom::LabeledObject(protectedObj, *confLabel, *intLabel);
 
   return true;
