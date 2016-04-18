@@ -1,0 +1,19 @@
+<body>
+  <p>Location change</p>
+  <script type="text/javascript" charset="utf-8">
+    COWL.enable();
+    COWL.confidentiality = new Label('http://alice.com/');
+
+    var wParent = SpecialPowers.wrap(parent);
+    var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+    try {
+      window.location = 'http://bob.com';
+    } catch(e) {
+      // will throw error if not allowed... Which is good for our case.
+      wwParent.ok_wrapper(true, "Should not be able to change location after confinement");
+    }
+
+
+  </script>
+</body>
