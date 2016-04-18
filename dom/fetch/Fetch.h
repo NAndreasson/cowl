@@ -126,6 +126,12 @@ public:
   }
 
   already_AddRefed<Promise>
+  LabeledJson(ErrorResult& aRv)
+  {
+    return ConsumeBody(CONSUME_LABELED_JSON, aRv);
+  }
+
+  already_AddRefed<Promise>
   Text(ErrorResult& aRv)
   {
     return ConsumeBody(CONSUME_TEXT, aRv);
@@ -168,6 +174,7 @@ private:
     CONSUME_BLOB,
     CONSUME_FORMDATA,
     CONSUME_JSON,
+    CONSUME_LABELED_JSON,
     CONSUME_TEXT,
   };
 

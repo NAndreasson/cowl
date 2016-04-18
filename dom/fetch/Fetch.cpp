@@ -44,6 +44,10 @@
 #include "Workers.h"
 #include "FetchUtil.h"
 
+#include "mozilla/dom/LabeledObject.h"
+#include "mozilla/dom/COWLParser.h"
+#include "mozilla/dom/Label.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -954,6 +958,11 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
   RefPtr<Promise> localPromise = mConsumePromise.forget();
 
   RefPtr<Derived> kungfuDeathGrip = DerivedClass();
+
+  nsAutoString reqUrl;
+  DerivedClass()->GetUrl(reqUrl);
+  printf("Fetch origin %s\n", ToNewCString(reqUrl));
+
   ReleaseObject();
 
   if (NS_WARN_IF(NS_FAILED(aStatus))) {
@@ -1007,6 +1016,15 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
 
   ErrorResult error;
 
+  printf("Mime type %s\n", mMimeType.get());
+  // TODO refactor guess it does not have to be utf-8? Seems to be automatically
+  // added somewhere
+  // COWL check, should not get labeled-json via json or something else
+  if (mMimeType.EqualsLiteral("application/labeled-json; charset=utf-8") && mConsumeType != CONSUME_LABELED_JSON) {
+    printf("Sorry, cant do that\n");
+    return;
+  }
+
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
       JS::Rooted<JSObject*> arrayBuffer(cx);
@@ -1044,6 +1062,51 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
         mMimeType, data, error);
       if (!error.Failed()) {
         localPromise->MaybeResolve(fd);
+      }
+      break;
+    }
+    case CONSUME_LABELED_JSON: {
+      printf("Consuming labeled json\n");
+      nsString decoded;
+      if (NS_SUCCEEDED(FetchUtil::ConsumeText(aResultLength, aResult, decoded))) {
+        JS::Rooted<JS::Value> json(cx);
+        FetchUtil::ConsumeJson(cx, &json, decoded, error);
+        if (!error.Failed()) {
+
+          nsCOMPtr<nsIURI> reqOrigin;
+          NS_NewURI(getter_AddRefs(reqOrigin), reqUrl);
+
+          nsAutoCString prePath;
+          reqOrigin->GetPrePath(prePath);
+          printf("Fetch prepath %s\n", ToNewCString(prePath));
+
+          JS::RootedObject resultJSONObj(cx, &json.toObject());
+
+          JS::RootedValue confidentiality(cx);
+          JS_GetProperty(cx, resultJSONObj, "confidentiality", &confidentiality);
+
+          JS::RootedValue integrity(cx);
+          JS_GetProperty(cx, resultJSONObj, "integrity", &integrity);
+
+          JS::RootedValue protectedObj(cx);
+          JS_GetProperty(cx, resultJSONObj, "object", &protectedObj);
+
+          nsString confStr;
+          nsAutoJSString confJSStr;
+          confJSStr.init(cx, confidentiality);
+          confStr = confJSStr;
+
+          nsString intStr;
+          nsAutoJSString intJSStr;
+          intJSStr.init(cx, integrity);
+          intStr = intJSStr;
+
+          RefPtr<Label> confLabel = COWLParser::parsePrincipalExpression(confStr, prePath);
+          RefPtr<Label> intLabel = COWLParser::parsePrincipalExpression(intStr, prePath);
+
+          RefPtr<mozilla::dom::LabeledObject> lObj = new mozilla::dom::LabeledObject(protectedObj, *confLabel, *intLabel);
+          localPromise->MaybeResolve(lObj);
+        }
       }
       break;
     }

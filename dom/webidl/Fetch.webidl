@@ -22,6 +22,8 @@ interface Body {
   [Throws]
   Promise<JSON> json();
   [Throws]
+  Promise<JSON> labeledJson();
+  [Throws]
   Promise<USVString> text();
 };
 
