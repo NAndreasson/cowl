@@ -1,0 +1,12 @@
+<script>
+COWL.enable();
+COWL.integrity = new Label('http://example.com/');
+
+window.receivedMsg = false;
+
+window.addEventListener('message', onMsg, false);
+function onMsg() {
+  window.receivedMsg = true;
+}
+
+</script>

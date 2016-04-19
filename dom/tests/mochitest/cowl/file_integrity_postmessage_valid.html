@@ -1,0 +1,23 @@
+<script type="text/javascript" charset="utf-8">
+// this frame should be loaded from example.com and therefore have the integrity to post to example.com below.
+var wParent = SpecialPowers.wrap(window.parent);
+var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+function postMsg(iframe) {
+  // post a message...
+  var wFrame = SpecialPowers.wrap(iframe);
+  var wwFrame = SpecialPowers.Cu.waiveXrays(wFrame);
+  iframe.contentWindow.postMessage('test msg', '*');
+
+  // arbitrary timeout, want to make sure that postmessage event fired
+  setTimeout(function() {
+    var received = wwFrame.contentWindow.receivedMsg;
+
+    // we expect the postmessage to success only if we are of the same origin as target iframe
+    var expected = window.location.origin == 'http://example.com' ? true : false;
+    wwParent.ok_wrapper(received == expected, "MSG received");
+  }, 500);
+}
+
+</script>
+<iframe onload="postMsg(this) "src="http://example.com/tests/dom/tests/mochitest/cowl/file_integrity_postmessage.html" frameborder="0"></iframe>
