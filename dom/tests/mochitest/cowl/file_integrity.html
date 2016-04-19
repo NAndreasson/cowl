@@ -1,0 +1,21 @@
+<script>
+COWL.enable();
+
+var wParent = SpecialPowers.wrap(window.parent);
+var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+// Try to raise to label we do not have privilege for
+try {
+  COWL.integrity = new Label('http://alice.com/');
+  wwParent.ok_wrapper(false, "Should not be able to raise integrity to arbitrary labels");
+} catch(e) {
+  wwParent.ok_wrapper(true, "Should not be able to raise integrity to arbitrary labels");
+}
+
+// Should have privilege for http://example.com/
+try {
+  COWL.integrity = new Label("http://example.com/");
+  wwParent.ok_wrapper(true, "Should not be able to raise integrity to arbitrary labels");
+} catch(e) {
+}
+</script>
