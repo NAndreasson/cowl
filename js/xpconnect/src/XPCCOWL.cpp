@@ -32,10 +32,8 @@ static inline uint32_t cowlInitialSandboxFlags() {
 }
 
 static inline uint32_t cowlConfinementSandboxFlags() {
-  return SANDBOXED_ORIGIN | SANDBOXED_NAVIGATION;
+  return SANDBOXED_ORIGIN | SANDBOXED_NAVIGATION | SANDBOXED_AUXILIARY_NAVIGATION;
 }
-
-
 
 NS_EXPORT_(void)
 EnableCompartmentConfinement(JSCompartment *compartment)
