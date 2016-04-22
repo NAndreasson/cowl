@@ -37,7 +37,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     },
     {
       desc: "Test 2: Should not be able to lower confidentiality label",
-      script: "COWL.enable(); COWL.confidentiality = new Label('http://a.com'); COWL.confidentiality = new Label();",
+      script: "COWL.confidentiality = new Label();",
+      shouldThrow: true
+    },
+    {
+      desc: "Test 3: Should not be able to open auxiliary browsing context",
+      script: "window.open('http://example.org');",
       shouldThrow: true
     }
   ];
