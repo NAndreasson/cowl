@@ -352,6 +352,20 @@ Label::Subsumes(const mozilla::dom::Label &privs,
   return _this->Subsumes(other);
 }
 
+bool
+Label::ContainsSensitivePrincipal()
+{
+  for (unsigned i = 0; i < mRoles.Length(); ++i) {
+    DisjunctionSet& role = mRoles.ElementAt(i);
+    for (unsigned j = 0; j < role.Length(); ++j) {
+      if (role[j].IsSensitivePrincipal()) return true;
+    }
+
+  }
+
+  return false;
+}
+
 void
 Label::_And(nsIPrincipal *p, ErrorResult& aRv)
 {

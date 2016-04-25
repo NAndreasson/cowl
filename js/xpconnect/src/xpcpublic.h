@@ -596,6 +596,9 @@ NS_EXPORT_(bool)
 IsCompartmentConfined(JSCompartment *compartment);
 
 NS_EXPORT_(bool)
+CanFlowToChildren(JSCompartment *compartment, mozilla::dom::Label &confidentiality);
+
+NS_EXPORT_(bool)
 LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
     mozilla::dom::Label &confidentiality, mozilla::dom::Label *privs);
 

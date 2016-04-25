@@ -135,6 +135,11 @@ COWL::SetConfidentiality(const GlobalObject& global, JSContext* cx,
     return;
   }
 
+  if (!xpc::cowl::CanFlowToChildren(compartment, aLabel)) {
+    JSErrorResult(cx, aRv, "Cannot raise label with children");
+    return;
+  }
+
   if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, aLabel, privs)) {
     JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
     return;

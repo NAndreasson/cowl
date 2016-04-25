@@ -443,7 +443,7 @@ COWLParser::checkHexOctets(uint32_t hexOctetNr)
 bool
 COWLParser::uniquePrincipal()
 {
-  // check if starts with "app:"
+  // check if starts with "unique:"
   if (!accept('u')) return false;
   if (!accept('n')) return false;
   if (!accept('i')) return false;
@@ -497,6 +497,23 @@ COWLParser::appPrincipal()
   return atEnd();
 }
 
+bool
+COWLParser::sensitivePrincipal()
+{
+  if (!accept('s')) return false;
+  if (!accept('e')) return false;
+  if (!accept('n')) return false;
+  if (!accept('s')) return false;
+  if (!accept(COLON)) return false;
+
+  // at least one host char
+  if (!hostChar()) return false;
+  // Consume all hostchars
+  while (hostChar()) { /* consume */ }
+
+  return atEnd();
+}
+
 COWLPrincipalType
 COWLParser::principalExpression()
 {
@@ -514,6 +531,12 @@ COWLParser::principalExpression()
 
   if (appPrincipal()) {
     return COWLPrincipalType::APP_PRINCIPAL;
+  }
+
+  resetCurChar(mCurToken);
+
+  if (sensitivePrincipal()) {
+    return COWLPrincipalType::SENSITIVE_PRINCIPAL;
   }
 
   resetCurChar(mCurToken);

@@ -20,6 +20,7 @@ enum class COWLPrincipalType
   APP_PRINCIPAL,
   UNIQUE_PRINCIPAL,
   ORIGIN_PRINCIPAL,
+  SENSITIVE_PRINCIPAL,
   INVALID_PRINCIPAL
 };
 
@@ -92,6 +93,7 @@ private:
   bool hostSource();
   bool uniquePrincipal();
   bool appPrincipal();
+  bool sensitivePrincipal();
   COWLPrincipalType principalExpression();
 
   bool subPath();                 // helper function to parse paths

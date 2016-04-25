@@ -10,6 +10,8 @@
 #include "jsfriendapi.h"
 #include "mozilla/dom/COWL.h"
 #include "mozilla/dom/Label.h"
+#include "nsGlobalWindow.h"
+#include "nsIDOMWindowCollection.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsDocument.h"
 #include "nsSandboxFlags.h"
@@ -232,6 +234,43 @@ UpgradedConfidentialityLabel(JSCompartment *compartment)
   return upgradedConf.forget();
 }
 
+NS_EXPORT_(bool)
+CanFlowToChildren(JSCompartment *compartment,
+                  Label& confidentiality)
+{
+  JSObject *jsGlobal = JS_GetGlobalForCompartmentOrNull(compartment);
+  nsGlobalWindow* aWin = xpc::WindowOrNull(jsGlobal);
+  nsCOMPtr<nsIDOMWindowCollection> frames = aWin->GetFrames();
+
+  uint32_t length = 0;
+  frames->GetLength(&length);
+
+  printf("How many frames??? %d\n", length);
+
+  if (length > 0 && confidentiality.ContainsSensitivePrincipal()) return false;
+
+/*   for (uint32_t i = 0; i < length; i++) { */
+/*     nsCOMPtr<mozIDOMWindowProxy> child; */
+/*     frames->Item(i, getter_AddRefs(child)); */
+
+/*     if (!child) { */
+/*       return false; */
+/*     } */
+
+/*     auto* childWin = nsGlobalWindow::Cast(child); */
+/*     JSCompartment *childComp = js::GetObjectCompartment( childWin->GetWrapperPreserveColor() ); */
+
+/*     RefPtr<Label> confChildComp = GetCompartmentConfidentialityLabel(childComp); */
+
+/*     if ( !confChildComp->Subsumes(confidentiality) ) { */
+/*       return false; */
+/*     } */
+/*     // get compartment */
+/*   } */
+
+  return true;
+}
+
 
 NS_EXPORT_(bool)
 LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
@@ -240,7 +279,7 @@ LabelRaiseWillResultInStuckContext(JSCompartment *compartment,
 {
   // Get the compartment global
   nsCOMPtr<nsIGlobalObject> global =
-    NativeGlobal(JS_GetGlobalForCompartmentOrNull(compartment));
+      NativeGlobal(JS_GetGlobalForCompartmentOrNull(compartment));
   MOZ_ASSERT(global);
 
   // Get the underlying window, if it exists

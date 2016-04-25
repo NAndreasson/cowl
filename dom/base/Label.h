@@ -44,6 +44,11 @@ public:
     return mPrincipalType == COWLPrincipalType::ORIGIN_PRINCIPAL;
   }
 
+  bool IsSensitivePrincipal() const
+  {
+    return mPrincipalType == COWLPrincipalType::SENSITIVE_PRINCIPAL;
+  }
+
 private:
   nsString mPrincipal;
   COWLPrincipalType mPrincipalType;
@@ -123,6 +128,8 @@ public: // C++ only:
   void _Or(mozilla::dom::Label& label, ErrorResult& aRv);
 
   void Stringify(DisjunctionSet& dset, nsString& retval);
+
+  bool ContainsSensitivePrincipal();
 
 private:
 

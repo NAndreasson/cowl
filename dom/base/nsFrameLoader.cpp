@@ -485,6 +485,7 @@ nsFrameLoader::CheckURILoad(nsIURI* aURI)
 
     bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
     if (!canFlowTo) {
+      printf("Cannot flow to\n");
       rv = NS_ERROR_FAILURE;
       return rv;
     }
