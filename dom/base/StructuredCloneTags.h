@@ -34,6 +34,7 @@ enum StructuredCloneTags {
 
   SCTAG_DOM_FUNCTION,
 
+  SCTAG_DOM_LABEL,
   // This tag is for COWL labeled objects
   SCTAG_DOM_LABELEDOBJECT,
 

@@ -18,6 +18,8 @@
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/ImageData.h"
 #include "mozilla/dom/ImageDataBinding.h"
+#include "mozilla/dom/Label.h"
+#include "mozilla/dom/LabelBinding.h"
 #include "mozilla/dom/LabeledObject.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/dom/StructuredClone.h"
@@ -394,6 +396,10 @@ StructuredCloneHolder::ReadFullySerializableObjects(JSContext* aCx,
     return ReadStructuredCloneImageData(aCx, aReader);
   }
 
+  if (aTag == SCTAG_DOM_LABEL) {
+   return Label::ReadStructuredClone(aCx, aReader, aIndex); // 0 should be "data" which is remove for now
+  }
+
   if (aTag == SCTAG_DOM_LABELEDOBJECT) {
    return LabeledObject::ReadStructuredClone(aCx, aReader, aIndex); // 0 should be "data" which is remove for now
   }
@@ -508,6 +514,14 @@ StructuredCloneHolder::WriteFullySerializableObjects(JSContext* aCx,
     ImageData* imageData = nullptr;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(ImageData, aObj, imageData))) {
       return WriteStructuredCloneImageData(aCx, aWriter, imageData);
+    }
+  }
+
+  // Handle Label cloning
+  {
+    Label* label = nullptr;
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(Label, aObj, label))) {
+      return label->WriteStructuredClone(aCx, aWriter);
     }
   }
 

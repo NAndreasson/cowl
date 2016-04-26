@@ -111,6 +111,10 @@ public: // C++ only:
   bool Subsumes(const DisjunctionSet& role, const mozilla::dom::Label& other);
   bool Subsumes(const mozilla::dom::Label& privs, const mozilla::dom::Label& other);
 
+  bool WriteStructuredClone(JSContext* cx, JSStructuredCloneWriter* writer);
+  static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
+
+
   already_AddRefed<Label> Downgrade(mozilla::dom::Label& privilegeLabel);
   already_AddRefed<Label> Upgrade(mozilla::dom::Label& privilegeLabel);
 

@@ -1,0 +1,21 @@
+/* -*- Mode: C++; tab-width: 50; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface Label;
+
+[scriptable, uuid(dabb5b20-621a-427f-b758-cfa115973cf1)]
+interface nsILabelService : nsISupports
+{
+};
+
+%{ C++
+#define LABELSERVICE_CONTRACTID "@mozilla.org/label-service;1"
+#define LABELSERVICE_CID \
+  { 0xe3ba35b6, 0xa4e4, 0x4f4f, \
+    { 0xb7, 0xc5, 0x8b, 0x11, 0x27, 0xe4, 0xfb, 0x88 } }
+
+%}
