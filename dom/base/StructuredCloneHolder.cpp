@@ -20,6 +20,8 @@
 #include "mozilla/dom/ImageDataBinding.h"
 #include "mozilla/dom/Label.h"
 #include "mozilla/dom/LabelBinding.h"
+#include "mozilla/dom/Privilege.h"
+#include "mozilla/dom/PrivilegeBinding.h"
 #include "mozilla/dom/LabeledObject.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/dom/StructuredClone.h"
@@ -397,11 +399,15 @@ StructuredCloneHolder::ReadFullySerializableObjects(JSContext* aCx,
   }
 
   if (aTag == SCTAG_DOM_LABEL) {
-   return Label::ReadStructuredClone(aCx, aReader, aIndex); // 0 should be "data" which is remove for now
+   return Label::ReadStructuredClone(aCx, aReader, aIndex);
   }
 
   if (aTag == SCTAG_DOM_LABELEDOBJECT) {
-   return LabeledObject::ReadStructuredClone(aCx, aReader, aIndex); // 0 should be "data" which is remove for now
+   return LabeledObject::ReadStructuredClone(aCx, aReader, aIndex);
+  }
+
+  if (aTag == SCTAG_DOM_PRIVILEGE) {
+    return Privilege::ReadStructuredClone(aCx, aReader, aIndex);
   }
 
   if (aTag == SCTAG_DOM_WEBCRYPTO_KEY) {
@@ -530,6 +536,14 @@ StructuredCloneHolder::WriteFullySerializableObjects(JSContext* aCx,
     LabeledObject* labeledObject;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(LabeledObject, aObj, labeledObject))) {
       return labeledObject->WriteStructuredClone(aCx, aWriter);
+    }
+  }
+
+  // Handle privilege cloning
+  {
+    Privilege* privilege;
+    if (NS_SUCCEEDED(UNWRAP_OBJECT(Privilege, aObj, privilege))) {
+      return privilege->WriteStructuredClone(aCx, aWriter);
     }
   }
 

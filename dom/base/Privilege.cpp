@@ -12,6 +12,9 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIPrincipal.h"
 
+#include "nsLabelService.h"
+#include "StructuredClonetags.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -174,6 +177,55 @@ Privilege::JSErrorResult(JSContext *cx, ErrorResult& aRv, const char *msg)
   } else {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
   }
+}
+
+bool
+Privilege::WriteStructuredClone(JSContext* cx,
+                                  JSStructuredCloneWriter* writer)
+{
+  nsresult rv;
+  nsCOMPtr<nsILabelService> ilbs(do_GetService(LABELSERVICE_CID, &rv));
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  nsLabelService* ls = static_cast<nsLabelService*>(ilbs.get());
+  if (!ls) {
+    return false;
+  }
+  if (JS_WriteUint32Pair(writer, SCTAG_DOM_PRIVILEGE,
+                                 ls->mLabelList.Length())) {
+    ls->mLabelList.AppendElement(&mLabel);
+    return true;
+  }
+  return false;
+}
+
+JSObject*
+Privilege::ReadStructuredClone(JSContext* cx,
+                                 JSStructuredCloneReader* reader, uint32_t idx)
+{
+  nsresult rv;
+  nsCOMPtr<nsILabelService> ilbs(do_GetService(LABELSERVICE_CID, &rv));
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+  nsLabelService* ls = static_cast<nsLabelService*>(ilbs.get());
+  if (!ls) {
+    return nullptr;
+  }
+  if(idx >= ls->mLabelList.Length()) {
+    return nullptr;
+  }
+  RefPtr<Label> label = ls->mLabelList[idx];
+  ls->mLabelList.RemoveElementAt(idx);
+
+  ErrorResult aRv;
+  label = label->Clone(aRv);
+  if (aRv.Failed()) return nullptr;
+
+  RefPtr<Privilege> privilege = new Privilege(*label);
+
+  return privilege->WrapObject(cx, nullptr); // TODO, acceptable with nullptr here?
 }
 
 } // namespace dom

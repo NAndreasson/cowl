@@ -19,7 +19,9 @@ public:
   nsresult Init();
 
 
-protected: friend class mozilla::dom::Label;
+protected:
+  friend class mozilla::dom::Label;
+  friend class mozilla::dom::Privilege;
   nsTArray<RefPtr<mozilla::dom::Label> > mLabelList;
   virtual ~nsLabelService();
 };

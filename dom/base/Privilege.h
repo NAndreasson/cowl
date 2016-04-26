@@ -65,6 +65,9 @@ public:
 public: // C++ only
   void _And(mozilla::dom::Privilege& other);
 
+  bool WriteStructuredClone(JSContext* cx, JSStructuredCloneWriter* writer);
+  static JSObject* ReadStructuredClone(JSContext* cx, JSStructuredCloneReader* reader, uint32_t data);
+
 private:
   Label* DirectLabel() { return &mLabel; }
 
