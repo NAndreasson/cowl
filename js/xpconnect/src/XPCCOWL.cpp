@@ -567,12 +567,33 @@ GuardRead(JSCompartment *compartment, JSCompartment *source, bool isGET)
 NS_EXPORT_(void)
 RefineCompartmentFlags(JSCompartment *compartment)
 {
-  RefPtr<Label> confidentiality = GetCompartmentConfidentialityLabel(compartment);
+    // Get the compartment global
+  nsCOMPtr<nsIGlobalObject> global =
+    NativeGlobal(JS_GetGlobalForCompartmentOrNull(compartment));
+  MOZ_ASSERT(global);
 
-  // TODO, take privilege in consideration.... Should extract to label downgrade algo...
-  if (confidentiality->IsEmpty()) {
+  // Get the underlying window, if it exists
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryInterface(global));
+  nsCOMPtr<nsIDocument> doc;
+  if (win) {
+    doc = win->GetDoc();
+  }
+
+  // clear flags, as integrity can be set down to empty label
+  // TODO should potentially revert to flags set before enabling COWL
+  if (doc) {
 #if COWL_DEBUG
-    printf("Refine: confidentiality label is empty, do nothing\n");
+    printf("Clearing sandbox flags\n");
+#endif
+    doc->SetSandboxFlags(0);
+  }
+
+  RefPtr<Label> effectiveConf = EffectiveConfidentialityLabel(compartment);
+  RefPtr<Label> integrity = GetCompartmentIntegrityLabel(compartment);
+
+  if (effectiveConf->IsEmpty() && integrity->IsEmpty()) {
+#if COWL_DEBUG
+    printf("Refine: confidentiality label is empty or integrity not set, do nothing\n");
 #endif
     return;
   }
@@ -582,25 +603,12 @@ RefineCompartmentFlags(JSCompartment *compartment)
   RefPtr<Label> emptyLabel = new Label();
 
   // check effective label
-  if (emptyLabel->Subsumes(*privilege, *confidentiality)) {
-#if COWL_DEBUG
-    printf("Effective label empty\n");
-#endif
-    return;
-  }
-
-    // Get the compartment global
-  nsCOMPtr<nsIGlobalObject> global =
-    NativeGlobal(JS_GetGlobalForCompartmentOrNull(compartment));
-  MOZ_ASSERT(global);
-
-  // Get the underlying window, if it exists
-  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryInterface(global));
-  nsCOMPtr<nsIDocument> doc;
-
-  if (win) {
-    doc = win->GetDoc();
-  }
+  /* if (emptyLabel->Subsumes(*privilege, *confidentiality)) { */
+/* #if COWL_DEBUG */
+  /*   printf("Refine: Effective confidentiality label empty\n"); */
+/* #endif */
+  /*   return; */
+  /* } */
 
   if (doc) {
 #if COWL_DEBUG

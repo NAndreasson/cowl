@@ -187,6 +187,8 @@ COWL::SetIntegrity(const GlobalObject& global, JSContext* cx,
   // Changing the trust/integrity label affects cross-compartment
   // communication. Adjust wrappers:
   js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
+
+  xpc::cowl::RefineCompartmentFlags(compartment);
 }
 
 already_AddRefed<Privilege>
