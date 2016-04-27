@@ -15,7 +15,31 @@ try {
 // Should have privilege for http://example.com/
 try {
   COWL.integrity = new Label("http://example.com/");
-  wwParent.ok_wrapper(true, "Should not be able to raise integrity to arbitrary labels");
+  wwParent.ok_wrapper(true, "Should be able to raise integrity to origin labels");
 } catch(e) {
+  wwParent.ok_wrapper(false, "Should be able to raise integrity to origin labels");
 }
+
+try {
+  COWL.integrity = new Label();
+  wwParent.ok_wrapper(true, "Should be able to lower integrity again");
+} catch(e) {
+  wwParent.ok_wrapper(false, "Should be able to lower integrity again");
+}
+
+try {
+  localStorage.setItem('name', 'Alice');
+  wwParent.ok_wrapper(true, "Should be able to access localstorage if integrity not set");
+} catch(e) {
+  wwParent.ok_wrapper(false, "Should be able to access localstorage if integrity not set");
+}
+
+try {
+  COWL.integrity = new Label(window.location.origin);
+  localStorage.setItem('name', 'Alice');
+  wwParent.ok_wrapper(false, "Should not be able to access localstorage if integrity set");
+} catch(e) {
+  wwParent.ok_wrapper(true, "Should not be able to access localstorage if integrity set");
+}
+
 </script>
