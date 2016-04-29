@@ -223,8 +223,17 @@ Privilege::ReadStructuredClone(JSContext* cx,
   label = label->Clone(aRv);
   if (aRv.Failed()) return nullptr;
 
-  RefPtr<Privilege> privilege = new Privilege(*label);
+  // Need to be a delegated or fresh privilege.
+  DisjunctionSetArray* dsets = label->GetDirectRoles();
+  for (unsigned i = 0; i < dsets->Length(); ++i) {
+    DisjunctionSet& role = dsets->ElementAt(i);
+    // if only size one and contains an origin principal return null
+    if (role.Length() == 1 && role[0].IsOriginPrincipal()) {
+      return nullptr;
+    }
+  }
 
+  RefPtr<Privilege> privilege = new Privilege(*label);
   return privilege->WrapObject(cx, nullptr); // TODO, acceptable with nullptr here?
 }
 
