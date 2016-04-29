@@ -1,0 +1,12 @@
+<script type="text/javascript" charset="utf-8">
+  var wParent = SpecialPowers.wrap(parent);
+  var wwParent = SpecialPowers.Cu.waiveXrays(wParent);
+
+  window.addEventListener('message', onMsg, false);
+
+  function onMsg() {
+    console.log('Received a msg');
+    wwParent.ok_wrapper();
+  }
+
+</script>
