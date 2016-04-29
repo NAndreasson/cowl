@@ -213,11 +213,15 @@ Privilege::ReadStructuredClone(JSContext* cx,
   if (!ls) {
     return nullptr;
   }
+
   if(idx >= ls->mLabelList.Length()) {
     return nullptr;
   }
   RefPtr<Label> label = ls->mLabelList[idx];
-  ls->mLabelList.RemoveElementAt(idx);
+
+
+  // TODO: Removing the element will cause some problems when firing postMessage in rapid succession, as list is shifted and then leading to out of index etc. Not removing could cause a memory leak, will look into this
+  /* ls->mLabelList.RemoveElementAt(idx); */
 
   ErrorResult aRv;
   label = label->Clone(aRv);

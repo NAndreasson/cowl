@@ -244,7 +244,9 @@ LabeledObject::ReadStructuredClone(JSContext* cx,
     return nullptr;
   }
   RefPtr<LabeledObject> labeledObject = lbs->mLabeledObjectList[idx];
-  lbs->mLabeledObjectList.RemoveElementAt(idx);
+
+  // TODO: Removing the element will cause some problems when firing postMessage in rapid succession, as list is shifted and then leading to out of index etc. Not removing could cause a memory leak, will look into this
+  /* lbs->mLabeledObjectList.RemoveElementAt(idx); */
 
   ErrorResult aRv;
   RefPtr<Label> confidentiality   = labeledObject->Confidentiality();
@@ -255,7 +257,7 @@ LabeledObject::ReadStructuredClone(JSContext* cx,
   integrity = integrity->Clone(aRv);
   if (aRv.Failed()) return nullptr;
 
-  // Ned to create a rooted value which is needed for JS::Handle used as function param?
+  // Need to create a rooted value which is needed for JS::Handle used as function param?
   JS::RootedValue objVal(cx, labeledObject->GetObj());
   JS::RootedValue objectClone(cx);
   // TODO could possibly fail, handle that,
