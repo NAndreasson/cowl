@@ -102,7 +102,10 @@ public:
   }
   void SetWidth(const nsAString& aWidth, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::width, aWidth, aError);
+    printf("Setting WIDTH of Iframe\n");
+    if (DoCOWLCheck()) {
+      SetHTMLAttr(nsGkAtoms::width, aWidth, aError);
+    }
   }
   void GetHeight(DOMString& aHeight)
   {
@@ -110,7 +113,10 @@ public:
   }
   void SetHeight(const nsAString& aHeight, ErrorResult& aError)
   {
-    SetHTMLAttr(nsGkAtoms::height, aHeight, aError);
+    printf("Setting HEIGHT of Iframe\n");
+    if (DoCOWLCheck()) {
+      SetHTMLAttr(nsGkAtoms::height, aHeight, aError);
+    }
   }
   using nsGenericHTMLFrameElement::GetContentDocument;
   using nsGenericHTMLFrameElement::GetContentWindow;
@@ -202,6 +208,26 @@ protected:
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
                                     nsRuleData* aData);
+
+  bool DoCOWLCheck()
+  {
+    JSObject* sourceWrapper = GetWrapperPreserveColor();
+    if (!sourceWrapper) return true;
+
+    JSCompartment* sourceComp = js::GetObjectCompartment(sourceWrapper);
+    if (!sourceComp) return true;
+
+    nsIDocument* doc = GetContentDocument();
+    if (!doc) return true;
+
+    JSObject* targetWrapper = doc->GetWrapperPreserveColor();
+    if (!targetWrapper) return true;
+
+    JSCompartment* targetComp = js::GetObjectCompartment(targetWrapper);
+
+    return xpc::cowl::CanFlowTo(sourceComp, targetComp);
+  }
+
 };
 
 } // namespace dom
