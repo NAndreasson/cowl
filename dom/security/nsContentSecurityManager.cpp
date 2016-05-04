@@ -123,51 +123,57 @@ DoCORSChecks(nsIChannel* aChannel, nsILoadInfo* aLoadInfo,
 static nsresult
 DoCOWLSecurityChecks(nsIURI* aURI, nsIChannel* aChannel, nsILoadInfo* aLoadInfo)
 {
-  printf("Performing COWL Security checks\n");
-  // If chrome code, then just accept
-  if (URIHasFlags(aURI, nsIProtocolHandler::URI_IS_UI_RESOURCE)) {
-    return NS_OK;
-  }
-
-  nsAutoCString origin;
-  aURI->GetPrePath(origin);
-  printf("Checking content from: %s\n", ToNewCString(origin));
-  /* nsIPrincipal* loadingPrincipal = aLoadInfo->LoadingPrincipal(); */
-  /* if (!loadingPrincipal) { */
-  /*   return NS_OK; // when does this happen, about:blank? */
+  /* bool canFlowTo = xpc::cowl::CheckCOWLPolicy(aURI, origin); */
+  /* if (!canFlowTo) { */
+  /*   nsresult rv = NS_ERROR_FAILURE; */
+  /*   NS_ENSURE_SUCCESS(rv, rv); */
+  /* } */
+  return NS_OK;
+  /* printf("Performing COWL Security checks\n"); */
+  /* // If chrome code, then just accept */
+  /* if (URIHasFlags(aURI, nsIProtocolHandler::URI_IS_UI_RESOURCE)) { */
+  /*   return NS_OK; */
   /* } */
 
-  /* printf("Before URI\n"); */
-  /* nsCOMPtr<nsIURI> requestOrigin; */
-  /* loadingPrincipal->GetURI(getter_AddRefs(requestOrigin)); */
+  /* nsAutoCString origin; */
+  /* aURI->GetPrePath(origin); */
+  /* printf("Checking content from: %s\n", ToNewCString(origin)); */
+  /* /1* nsIPrincipal* loadingPrincipal = aLoadInfo->LoadingPrincipal(); *1/ */
+  /* /1* if (!loadingPrincipal) { *1/ */
+  /* /1*   return NS_OK; // when does this happen, about:blank? *1/ */
+  /* /1* } *1/ */
 
-  /* // when does this happen? */
-  /* if (!requestOrigin) return NS_OK; */
+  /* /1* printf("Before URI\n"); *1/ */
+  /* /1* nsCOMPtr<nsIURI> requestOrigin; *1/ */
+  /* /1* loadingPrincipal->GetURI(getter_AddRefs(requestOrigin)); *1/ */
 
-  /* printf("Get ASCII spec\n"); */
+  /* /1* // when does this happen? *1/ */
+  /* /1* if (!requestOrigin) return NS_OK; *1/ */
 
-  /* nsAutoCString lOrigin; */
-  /* requestOrigin->GetAsciiSpec(lOrigin); */
-  /* printf("Loading prin oriing content from: %s\n", ToNewCString(lOrigin)); */
+  /* /1* printf("Get ASCII spec\n"); *1/ */
 
-  // pprint spec...
+  /* /1* nsAutoCString lOrigin; *1/ */
+  /* /1* requestOrigin->GetAsciiSpec(lOrigin); *1/ */
+  /* /1* printf("Loading prin oriing content from: %s\n", ToNewCString(lOrigin)); *1/ */
 
-  nsCOMPtr<nsIDOMDocument> dommyDoc;
-  aLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc);
-  if (!doc)
-    return NS_OK;
+  /* // pprint spec... */
+
+  /* nsCOMPtr<nsIDOMDocument> dommyDoc; */
+  /* aLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc)); */
+  /* nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc); */
+  /* if (!doc) */
+  /*   return NS_OK; */
 
 
-  JSObject* docObj = doc->GetWrapperPreserveColor();
-  JSCompartment *aCompartment = js::GetObjectCompartment(docObj);
+  /* JSObject* docObj = doc->GetWrapperPreserveColor(); */
+  /* JSCompartment *aCompartment = js::GetObjectCompartment(docObj); */
 
-  bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
-  if (!canFlowTo) {
-    nsresult rv = NS_ERROR_FAILURE;
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return NS_OK;
+  /* bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin); */
+  /* if (!canFlowTo) { */
+  /*   nsresult rv = NS_ERROR_FAILURE; */
+  /*   NS_ENSURE_SUCCESS(rv, rv); */
+  /* } */
+  /* return NS_OK; */
 }
 
 static nsresult
@@ -356,6 +362,15 @@ DoContentSecurityChecks(nsIURI* aURI, nsILoadInfo* aLoadInfo)
   if (NS_CP_REJECTED(shouldLoad)) {
     return NS_ERROR_CONTENT_BLOCKED;
   }
+
+  bool canFlowTo = xpc::cowl::CheckCOWLPolicy(aURI,
+                                            aLoadInfo->LoadingPrincipal(),
+                                            requestingContext);
+  if (!canFlowTo) {
+    rv = NS_ERROR_FAILURE;
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   return NS_OK;
 }
 
@@ -424,8 +439,8 @@ nsContentSecurityManager::doContentSecurityCheck(nsIChannel* aChannel,
   rv = DoContentSecurityChecks(finalChannelURI, loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = DoCOWLSecurityChecks(finalChannelURI, aChannel, loadInfo);
-  NS_ENSURE_SUCCESS(rv, rv);
+  /* rv = DoCOWLSecurityChecks(finalChannelURI, aChannel, loadInfo); */
+  /* NS_ENSURE_SUCCESS(rv, rv); */
 
   // now lets set the initalSecurityFlag for subsequent calls
   rv = loadInfo->SetInitialSecurityCheckDone(true);

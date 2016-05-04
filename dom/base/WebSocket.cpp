@@ -1550,6 +1550,11 @@ WebSocketImpl::Init(JSContext* aCx,
     return;
   }
 
+  if (!xpc::cowl::CheckCOWLPolicy(uri, aPrincipal, originDoc)) {
+    aRv.Throw(NS_ERROR_CONTENT_BLOCKED);
+    return;
+  }
+
   // Potentially the page uses the CSP directive 'upgrade-insecure-requests'.
   // In such a case we have to upgrade ws: to wss: and also update mSecure
   // to reflect that upgrade. Please note that we can not upgrade from ws:

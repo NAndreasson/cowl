@@ -648,6 +648,11 @@ GuardWrite(JSCompartment *compartment,
 NS_EXPORT_(bool)
 GuardWrite(JSCompartment *compartment, JSCompartment *dst);
 
+NS_EXPORT_(bool)
+CheckCOWLPolicy(nsIURI *contentLocation,
+                nsIPrincipal *originPrincipal,
+                nsISupports *context);
+
 // Update HTML5 flags to disallow storage etc...
 NS_EXPORT_(void)
 RefineCompartmentFlags(JSCompartment *compartment);

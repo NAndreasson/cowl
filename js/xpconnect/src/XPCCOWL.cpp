@@ -15,6 +15,8 @@
 #include "nsSandboxFlags.h"
 #include "nsNetUtil.h"
 
+#include "nsIProtocolHandler.h"
+
 using namespace xpc;
 using namespace JS;
 using namespace mozilla;
@@ -426,10 +428,10 @@ GuardRead(JSCompartment *compartment,
 NS_EXPORT_(bool)
 GuardRead(JSCompartment *source, const nsACString& aUri)
 {
-  printf("In guard read\n");
   MOZ_ASSERT(source);
 
   if (!IsCompartmentConfined(source)) {
+    printf("Source compartment not confined\n");
     return true;
   }
 
@@ -441,7 +443,7 @@ GuardRead(JSCompartment *source, const nsACString& aUri)
   // print text uri ...
   nsAutoCString tmpOrigin;
   rv = uri->GetAsciiSpec(tmpOrigin);
-  printf("Something %s\n", ToNewCString(tmpOrigin));
+  printf("Trying to load data from: %s\n", ToNewCString(tmpOrigin));
 
   RefPtr<Label> compConfidentiality = GetCompartmentConfidentialityLabel(source);
   RefPtr<Label> compIntegrity = GetCompartmentIntegrityLabel(source);
@@ -620,6 +622,64 @@ RefineCompartmentFlags(JSCompartment *compartment)
 
 }
 
+// borrowed from nsContentSecurityManager..
+static bool
+URIHasFlags(nsIURI* aURI, uint32_t aURIFlags)
+{
+  bool hasFlags;
+  nsresult rv = NS_URIChainHasFlags(aURI, aURIFlags, &hasFlags);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  return hasFlags;
+}
+
+NS_EXPORT_(bool)
+CheckCOWLPolicy(nsIURI *contentLocation,
+                   nsIPrincipal *originPrincipal,
+                   nsISupports *context)
+{
+  printf("Check COWL policy\n");
+  nsAutoCString origin;
+  contentLocation->GetPrePath(origin);
+  printf("Checking content from: %s\n", ToNewCString(origin));
+
+  if (URIHasFlags(contentLocation, nsIProtocolHandler::URI_IS_UI_RESOURCE)) {
+    printf("Is UI resource, let throug\n");
+    return true;
+  }
+
+  nsCOMPtr<nsINode> contextNode = do_QueryInterface(context);
+  if (!contextNode) {
+    printf("No contetNode\n");
+    nsCOMPtr<nsPIDOMWindowOuter> win = do_QueryInterface(context);
+    if (win) printf("Got a window\n");
+    return true;
+  }
+  if (contextNode) {
+    printf("GOT a owner doc??\n");
+    nsIDocument* doc = contextNode->OwnerDoc();
+    JSObject* wrapper = doc->GetWrapperPreserveColor();
+    if (!wrapper) {
+      printf("No JS object\n");
+      return true;
+    }
+
+    printf("Got a JS object\n");
+    JSCompartment* comp = js::GetObjectCompartment(wrapper);
+    if (!comp) {
+      printf("Did not get compartment\n");
+      return true;
+    }
+
+    bool canFlowTo = GuardRead(comp, origin);
+    if (!canFlowTo) {
+      printf("Can not flow to\n");
+    }
+    return canFlowTo;
+  }
+
+  return true;
+}
 
 #undef COWL_CONFIG
 

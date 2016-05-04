@@ -2775,6 +2775,13 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
       return NS_OK;
     }
 
+    JSObject *obj = GetWrapperPreserveColor();
+    if (obj) {
+      printf("Is a compartment present?\n");
+      // get compartment
+      JSCompartment *comp = js::GetObjectCompartment(obj);
+      if (comp) printf("Comp\n");
+    }
     // Store parsed labels on the document, compartment seems to not be created yet ..
     // These labels are set on the compartment when compartment is created in
     // nsGlobalWindow

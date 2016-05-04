@@ -665,7 +665,7 @@ nsContentUtils::InitializeModifierStrings()
     rv = bundleService->CreateBundle( "chrome://global-platform/locale/platformKeys.properties",
                                       getter_AddRefs(bundle));
   }
-  
+
   NS_ASSERTION(NS_SUCCEEDED(rv) && bundle, "chrome://global/locale/platformKeys.properties could not be loaded");
   nsXPIDLString shiftModifier;
   nsXPIDLString metaModifier;
@@ -688,7 +688,7 @@ nsContentUtils::InitializeModifierStrings()
   sOSText = new nsString(osModifier);
   sAltText = new nsString(altModifier);
   sControlText = new nsString(controlModifier);
-  sModifierSeparator = new nsString(modifierSeparator);  
+  sModifierSeparator = new nsString(modifierSeparator);
 }
 
 // Because of SVG/SMIL we have several atoms mapped to the same
@@ -1306,14 +1306,14 @@ nsContentUtils::SplitMimeType(const nsAString& aValue, nsString& aType,
   aType.StripWhitespace();
 }
 
-nsresult 
+nsresult
 nsContentUtils::IsUserIdle(uint32_t aRequestedIdleTimeInMS, bool* aUserIsIdle)
 {
   nsresult rv;
-  nsCOMPtr<nsIIdleService> idleService = 
+  nsCOMPtr<nsIIdleService> idleService =
     do_GetService("@mozilla.org/widget/idleservice;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-    
+
   uint32_t idleTimeInMS;
   rv = idleService->GetIdleTime(&idleTimeInMS);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1572,7 +1572,7 @@ bool nsContentUtils::IsAlphanumeric(uint32_t aChar)
 
   return (cat == nsIUGenCategory::kLetter || cat == nsIUGenCategory::kNumber);
 }
- 
+
 // static
 bool nsContentUtils::IsAlphanumericAt(const nsTextFragment* aFrag, uint32_t aOffset)
 {
@@ -1919,13 +1919,13 @@ nsContentUtils::Shutdown()
 
   delete sShiftText;
   sShiftText = nullptr;
-  delete sControlText;  
+  delete sControlText;
   sControlText = nullptr;
-  delete sMetaText;  
+  delete sMetaText;
   sMetaText = nullptr;
   delete sOSText;
   sOSText = nullptr;
-  delete sAltText;  
+  delete sAltText;
   sAltText = nullptr;
   delete sModifierSeparator;
   sModifierSeparator = nullptr;
@@ -2349,7 +2349,7 @@ nsContentUtils::ComparePoints(nsINode* aParent1, int32_t aOffset1,
 
   uint32_t pos1 = parents1.Length() - 1;
   uint32_t pos2 = parents2.Length() - 1;
-  
+
   bool disconnected = parents1.ElementAt(pos1) != parents2.ElementAt(pos2);
   if (aDisconnected) {
     *aDisconnected = disconnected;
@@ -2371,7 +2371,7 @@ nsContentUtils::ComparePoints(nsINode* aParent1, int32_t aOffset1,
     parent = child1;
   }
 
-  
+
   // The parent chains never differed, so one of the nodes is an ancestor of
   // the other
 
@@ -2808,7 +2808,7 @@ nsContentUtils::CheckQName(const nsAString& aQualifiedName,
   const char* colon = nullptr;
   const char16_t* begin = aQualifiedName.BeginReading();
   const char16_t* end = aQualifiedName.EndReading();
-  
+
   int result = MOZ_XMLCheckQName(reinterpret_cast<const char*>(begin),
                                  reinterpret_cast<const char*>(end),
                                  aNamespaceAware, &colon);
@@ -3038,6 +3038,8 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
   if (NS_FAILED(rv)) {
     return false;
   }
+
+  xpc::cowl::CheckCOWLPolicy(aURI, aLoadingPrincipal, aContext);
 
   nsAutoCString origin;
   aURI->GetPrePath(origin);
@@ -3874,7 +3876,7 @@ Element *
 nsContentUtils::MatchElementId(nsIContent *aContent, const nsAString& aId)
 {
   NS_PRECONDITION(!aId.IsEmpty(), "Will match random elements");
-  
+
   // ID attrs are generally stored as atoms, so just atomize this up front
   nsCOMPtr<nsIAtom> id(do_GetAtom(aId));
   if (!id) {
@@ -3966,8 +3968,8 @@ nsContentUtils::RegisterShutdownObserver(nsIObserver* aObserver)
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService) {
-    observerService->AddObserver(aObserver, 
-                                 NS_XPCOM_SHUTDOWN_OBSERVER_ID, 
+    observerService->AddObserver(aObserver,
+                                 NS_XPCOM_SHUTDOWN_OBSERVER_ID,
                                  false);
   }
 }
@@ -4281,7 +4283,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
   if (isHTML) {
     RefPtr<DocumentFragment> frag =
       new DocumentFragment(document->NodeInfoManager());
-    
+
     nsCOMPtr<nsIContent> contextAsContent = do_QueryInterface(aContextNode);
     if (contextAsContent && !contextAsContent->IsElement()) {
       contextAsContent = contextAsContent->GetParent();
@@ -4290,7 +4292,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
         contextAsContent = nullptr;
       }
     }
-    
+
     if (contextAsContent && !contextAsContent->IsHTMLElement(nsGkAtoms::html)) {
       aRv = ParseFragmentHTML(aFragment, frag,
                               contextAsContent->NodeInfo()->NameAtom(),
@@ -4703,7 +4705,7 @@ nsContentUtils::IsInSameAnonymousTree(const nsINode* aNode,
                   "Must have a node to work with");
   NS_PRECONDITION(aContent,
                   "Must have a content to work with");
-  
+
   if (!aNode->IsNodeOfType(nsINode::eCONTENT)) {
     /**
      * The root isn't an nsIContent, so it's a document or attribute.  The only
@@ -5229,7 +5231,7 @@ nsContentUtils::AddScriptRunner(nsIRunnable* aRunnable)
   if (sScriptBlockerCount) {
     return sBlockedScriptRunners->AppendElement(aRunnable) != nullptr;
   }
-  
+
   nsCOMPtr<nsIRunnable> run = aRunnable;
   run->Run();
 
@@ -5297,14 +5299,14 @@ nsContentUtils::PerformMainThreadMicroTaskCheckpoint()
   nsDOMMutationObserver::HandleMutations();
 }
 
-/* 
+/*
  * Helper function for nsContentUtils::ProcessViewportInfo.
  *
  * Handles a single key=value pair. If it corresponds to a valid viewport
  * attribute, add it to the document header data. No validation is done on the
  * value itself (this is done at display time).
  */
-static void ProcessViewportToken(nsIDocument *aDocument, 
+static void ProcessViewportToken(nsIDocument *aDocument,
                                  const nsAString &token) {
 
   /* Iterators. */
@@ -5546,7 +5548,7 @@ nsContentUtils::CheckForSubFrameDrop(nsIDragSession* aDragSession,
   if (!target) {
     return true;
   }
-  
+
   nsIDocument* targetDoc = target->OwnerDoc();
   nsPIDOMWindowOuter* targetWin = targetDoc->GetWindow();
   if (!targetWin) {
@@ -6037,7 +6039,7 @@ nsContentUtils::GetUTFOrigin(nsIURI* aURI, nsAString& aOrigin)
   else {
     aOrigin.AssignLiteral("null");
   }
-  
+
   return NS_OK;
 }
 
@@ -6262,7 +6264,7 @@ nsContentUtils::MatchClassNames(nsIContent* aContent, int32_t aNamespaceID,
   if (!classAttr) {
     return false;
   }
-  
+
   // need to match *all* of the classes
   ClassMatchingInfo* info = static_cast<ClassMatchingInfo*>(aData);
   uint32_t length = info->mClasses.Length();
@@ -6277,7 +6279,7 @@ nsContentUtils::MatchClassNames(nsIContent* aContent, int32_t aNamespaceID,
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -6537,7 +6539,7 @@ LayerManagerForDocumentInternal(const nsIDocument *aDoc, bool aRequirePersistent
   nsIWidget *widget = nsContentUtils::WidgetForDocument(aDoc);
   if (widget) {
     RefPtr<LayerManager> manager =
-      widget->GetLayerManager(aRequirePersistent ? nsIWidget::LAYER_MANAGER_PERSISTENT : 
+      widget->GetLayerManager(aRequirePersistent ? nsIWidget::LAYER_MANAGER_PERSISTENT :
                               nsIWidget::LAYER_MANAGER_CURRENT,
                               aAllowRetaining);
     return manager.forget();
@@ -6564,10 +6566,10 @@ nsContentUtils::AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal)
   if (IsSystemPrincipal(aPrincipal)) {
     return true;
   }
-  
+
   nsCOMPtr<nsIURI> princURI;
   aPrincipal->GetURI(getter_AddRefs(princURI));
-  
+
   return princURI &&
          ((sAllowXULXBL_for_file && SchemeIs(princURI, "file")) ||
           IsSitePermAllow(aPrincipal, "allowXULXBL"));
@@ -7593,7 +7595,7 @@ nsContentUtils::TransferableToIPCTransferable(nsITransferable* aTransferable,
             }
           } else {
             // This is a hack to support kFilePromiseMime.
-            // On Windows there just needs to be an entry for it, 
+            // On Windows there just needs to be an entry for it,
             // and for OSX we need to create
             // nsContentAreaDragDropDataProvider as nsIFlavorDataProvider.
             if (flavorStr.EqualsLiteral(kFilePromiseMime)) {
