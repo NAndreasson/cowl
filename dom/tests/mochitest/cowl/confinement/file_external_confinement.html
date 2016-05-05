@@ -77,12 +77,29 @@
     };
   }
 
+  // Seems like no onerror for iframes, have to solve in another way
+  function testConstructIFrame() {
+    var iframe = document.createElement('iframe');
+    iframe.src = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/frame.html';
+
+    iframe.onload = function() {
+      wwParent.ok_wrapper(false, 'Should not load iframe after reading sensitive information');
+    };
+
+    iframe.onerror = function() {
+      wwParent.ok_wrapper(true, 'Should not load iframe after reading sensitive information');
+    };
+
+    document.body.appendChild(iframe);
+  }
+
 
   testFetch();
   testConstructImage();
   testConstructScript();
   testConstructCSSLink();
   testWebSockets();
+  //testConstructIFrame();
 
 </script>
 </body>
