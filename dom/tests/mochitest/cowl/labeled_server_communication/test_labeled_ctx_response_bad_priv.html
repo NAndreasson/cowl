@@ -24,7 +24,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
   var passedTests = 0;
 
   var cowlFrame = document.getElementById('cowlframe');
-  cowlFrame.src = "http://example.com/tests/dom/tests/mochitest/cowl/labeled_bad_priv.html";
+  cowlFrame.src = "http://example.com/tests/dom/tests/mochitest/cowl/postmessage/labeled_bad_priv.html";
   setTimeout(function() {
     var wCowlFrame = SpecialPowers.wrap(cowlFrame.contentWindow);
     console.log(wCowlFrame);

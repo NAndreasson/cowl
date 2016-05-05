@@ -36,7 +36,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
   }
 
   function testFetch() {
-    fetch('http://example.com/tests/dom/tests/mochitest/cowl/labeled_data.html').then(function(res) {
+    fetch('http://example.com/tests/dom/tests/mochitest/cowl/labeled_server_communication/labeled_data.html').then(function(res) {
       ok_wrapper(false, "Fetch: Should not be able to load labeled response when not confined");
     }).catch(function(e) {
       ok_wrapper(true, "Fetch: Should not be able to load labeled response when not confined");
@@ -52,7 +52,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
       ok_wrapper(true, "XHR: Should not be able to load labeled response when not confined");
     });
 
-    req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/labeled_data.html");
+    req.open("GET", "http://example.com/tests/dom/tests/mochitest/cowl/labeled_server_communication/labeled_data.html");
     req.send();
   }
 
@@ -60,7 +60,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
   testXHR();
   </script>
   <!-- Run tests where we try to read the response after confinement -->
-  <iframe src="http://example.com/tests/dom/tests/mochitest/cowl/file_labeled_data_response.html" frameborder="0"></iframe>
+  <iframe src="http://example.com/tests/dom/tests/mochitest/cowl/labeled_server_communication/file_labeled_data_response.html" frameborder="0"></iframe>
 </pre>
 </body>
 </html>
