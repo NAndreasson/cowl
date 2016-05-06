@@ -17,6 +17,19 @@
     });
   }
 
+  function testXHR() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/evil.html?q=secret');
+
+    xhr.onload = function(e) {
+      wwParent.ok_wrapper(false, 'Should not be able to communicate with arbitrary origins');
+    };
+    xhr.onerror = function(e) {
+      wwParent.ok_wrapper(true, 'Should not be able to communicate with arbitrary origins');
+    };
+    xhr.send(null);
+  }
+
   function testConstructImage() {
     var img = document.createElement('img');
     img.src = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/jupiter.jpg';
@@ -63,21 +76,20 @@
 
     try {
       wss = new WebSocket('wss://example.com/tests/dom/tests/mochitest/cowl/confinement/file_websocket');
+      wss.onopen = function(e) {
+        wwParent.ok_wrapper(false, "Should not be able to open websocket connection when confined");
+        wss.close();
+      };
+
+      wss.onerror = function(e) {
+        wwParent.ok_wrapper(true, "Should not be able to open websocket connection when confined");
+      };
     } catch(e) {
       wwParent.ok_wrapper(true, "Should not be able to open websocket connection when confined");
     }
 
-    wss.onopen = function(e) {
-      wwParent.ok_wrapper(false, "Should not be able to open websocket connection when confined");
-      wss.close();
-    };
-
-    wss.onerror = function(e) {
-      wwParent.ok_wrapper(true, "Should not be able to open websocket connection when confined");
-    };
   }
 
-  // Seems like no onerror for iframes, have to solve in another way
   function testConstructIFrame() {
     var iframe = document.createElement('iframe');
     iframe.src = 'http://example.com/tests/dom/tests/mochitest/cowl/confinement/frame.html';
@@ -93,13 +105,45 @@
     document.body.appendChild(iframe);
   }
 
+  function testConstructVideo() {
+    var video = document.createElement('video');
+    video.src = 'http://example.com/tests/dom/media/test/320x240.ogv?' + Math.floor((Math.random()*1000)+1);
+    video.type = 'video/ogg';
+
+    video.onload = function() {
+      wwParent.ok_wrapper(false, 'Should not load iframe after reading sensitive information');
+    };
+
+    video.onloadeddata = function() {
+      wwParent.ok_wrapper(false, 'Should not load iframe after reading sensitive information');
+    };
+
+    video.onerror = function() {
+      wwParent.ok_wrapper(true, 'Should not load iframe after reading sensitive information');
+    };
+
+  //  document.body.appendChild(video);
+  }
+
+  // TODO finalize
+  function testConstructObject() {
+    var object = document.createElement("object");
+    object.data = baseUrl + "?type=object";
+    object.type = "application/x-test";
+
+    document.body.appendChild(object);
+  }
+
 
   testFetch();
+  //testXHR();
   testConstructImage();
   testConstructScript();
   testConstructCSSLink();
   testWebSockets();
-  //testConstructIFrame();
+  testConstructIFrame();
+  testConstructVideo();
+  //testConstructObject();
 
 </script>
 </body>
