@@ -134,6 +134,30 @@
     document.body.appendChild(object);
   }
 
+  // TODO verify this test
+  function testSendBeacon() {
+    try {
+      var result = navigator.sendBeacon("http://mochi.test:8888/tests/dom/tests/mochitest/beacon/beacon-handler.sjs", "Some data");
+      wwParent.ok_wrapper(!result, 'Should not be able to send data via send beacon when confined');
+    } catch(ex) {
+      wwParent.ok_wrapper(true, 'Should not be able to send data via send beacon when confined');
+    }
+  }
+
+  // TODO verify
+  function testEventSource() {
+    var eventSource = new EventSource("http://example.org/tests/dom/base/test/eventsource.resource");
+
+    eventSource.onopen = function(ev) {
+      wwParent.ok_wrapper(false, 'Should not be able to open event source when confined');
+    };
+
+    eventSource.onerror = function(ev) {
+      wwParent.ok_wrapper(true, 'Should not be able to open event source when confined');
+
+    };
+  }
+
 
   testFetch();
   //testXHR();
@@ -143,6 +167,8 @@
   testWebSockets();
   testConstructIFrame();
   testConstructVideo();
+  testSendBeacon();
+  testEventSource();
   //testConstructObject();
 
 </script>
