@@ -443,7 +443,7 @@ COWLParser::checkHexOctets(uint32_t hexOctetNr)
 bool
 COWLParser::uniquePrincipal()
 {
-  // check if starts with "app:"
+  // check if starts with "unique:"
   if (!accept('u')) return false;
   if (!accept('n')) return false;
   if (!accept('i')) return false;
