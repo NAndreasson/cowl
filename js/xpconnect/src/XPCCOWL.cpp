@@ -141,7 +141,7 @@ DEFINE_SET_LABEL(Privileges)
 
 // This function gets a copy of the compartment privileges.
 NS_EXPORT_(already_AddRefed<mozilla::dom::Label>)
-GetCompartmentPrivileges(JSCompartment*compartment)
+GetCompartmentPrivileges(JSCompartment* compartment)
 {
   ErrorResult aRv;
 

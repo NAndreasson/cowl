@@ -39,6 +39,8 @@
 #include "nsICompressConvStats.h"
 #include "nsStreamUtils.h"
 
+#include "mozilla/dom/Label.h"
+
 #ifdef OS_POSIX
 #include "chrome/common/file_descriptor_set_posix.h"
 #endif
@@ -1769,6 +1771,39 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   rv = NS_CheckPortSafety(mURI);
   if (NS_FAILED(rv))
     return rv;
+
+  if (mLoadInfo && mLoadInfo->LoadingNode()) {
+      nsCOMPtr<nsINode> requestingContext = mLoadInfo->LoadingNode();
+      nsIDocument* doc = requestingContext->OwnerDoc();
+      JSObject* wrapper = doc->GetWrapperPreserveColor();
+      printf("Got a loading node\n");
+
+      JSCompartment* comp;
+      if (wrapper && (comp = js::GetObjectCompartment(wrapper))) {
+          printf("Got a Compartmetn\n");
+          if (xpc::cowl::IsCompartmentConfined(comp)) {
+              printf("Got a confined compartment\n");
+
+
+              RefPtr<mozilla::dom::Label> confidentiality = xpc::cowl::GetCompartmentConfidentialityLabel(comp);
+              RefPtr<mozilla::dom::Label> integrity = xpc::cowl::GetCompartmentIntegrityLabel(comp);
+              RefPtr<mozilla::dom::Label> privilege = xpc::cowl::GetCompartmentPrivileges(comp);
+              nsAutoString confStr, intStr, privStr;
+              confidentiality->Stringify(confStr);
+              integrity->Stringify(intStr);
+              privilege->Stringify(privStr);
+
+              nsAutoCString headerVal("ctx-confidentiality ");
+              headerVal.Append(NS_ConvertUTF16toUTF8(confStr));
+              headerVal.AppendLiteral("; ctx-integrity ");
+              headerVal.Append(NS_ConvertUTF16toUTF8(intStr));
+              headerVal.AppendLiteral("; ctx-privilege ");
+              headerVal.Append(NS_ConvertUTF16toUTF8(privStr));
+
+              SetRequestHeader(NS_LITERAL_CSTRING("Sec-COWL"), headerVal, false);
+          }
+      }
+  }
 
   const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
   if (cookieHeader) {
