@@ -65,6 +65,22 @@ Privilege::Constructor(const GlobalObject& global,
 already_AddRefed<Privilege>
 Privilege::FreshPrivilege(const GlobalObject& global, ErrorResult& aRv)
 {
+  nsString uniquePrincipal;
+  GenerateUniquePrincipal(uniquePrincipal, aRv);
+  if (aRv.Failed()) return nullptr;
+
+  RefPtr<Label> label = Label::Constructor(global, uniquePrincipal, aRv);
+  if (aRv.Failed()) return nullptr;
+
+  RefPtr<Privilege> priv = new Privilege(*label);
+  if (!priv) return nullptr;
+
+  return priv.forget();
+}
+
+void
+Privilege::GenerateUniquePrincipal(nsAString& principal, ErrorResult& aRv)
+{
   nsresult rv;
   // create a fresh principal
   nsCOMPtr<nsIPrincipal> prin =
@@ -72,9 +88,7 @@ Privilege::FreshPrivilege(const GlobalObject& global, ErrorResult& aRv)
 
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
-    return nullptr;
   }
-
   // baseDomain should become {UUID}, might be better to bypass nullprincipal and use UUID service directly
   nsAutoCString baseDomain;
   prin->GetBaseDomain(baseDomain);
@@ -84,13 +98,8 @@ Privilege::FreshPrivilege(const GlobalObject& global, ErrorResult& aRv)
   baseDomain.Cut(0, 1); baseDomain.Cut(baseDomain.Length() - 1, 1);
 
   nsAutoCString uuidPrincipal = NS_LITERAL_CSTRING("unique:") +  baseDomain;
-  RefPtr<Label> label = Label::Constructor(global, NS_ConvertUTF8toUTF16(uuidPrincipal), aRv);
-  if (aRv.Failed()) return nullptr;
-
-  RefPtr<Privilege> priv = new Privilege(*label);
-  if (!priv) return nullptr;
-
-  return priv.forget();
+  // assign to principal...
+  principal.Assign(NS_ConvertUTF8toUTF16(uuidPrincipal));
 }
 
 bool

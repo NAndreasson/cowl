@@ -48,7 +48,6 @@ public:
   static already_AddRefed<Privilege> FreshPrivilege(const GlobalObject& global, ErrorResult& aRv);
 
   bool Equals(mozilla::dom::Privilege& other);
-
   bool Subsumes(mozilla::dom::Privilege& other);
 
   already_AddRefed<Privilege> Combine(mozilla::dom::Privilege& other);
@@ -70,6 +69,8 @@ public: // C++ only
 
 private:
   Label* DirectLabel() { return &mLabel; }
+
+  static void GenerateUniquePrincipal(nsAString& principal, ErrorResult& aRv);
 
 
 private:
