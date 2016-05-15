@@ -134,7 +134,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
     var aLabel = new Label('http://a.com/');
     var emptyOrALabel = emptyLabel.or(aLabel);
 
-    is(emptyOrALabel.equals(new Label('http://a.com/')), true, 'Label should be equal to the nonempty label used');
+    is(emptyOrALabel.equals(new Label()), true, 'Label should be equal to the nonempty label used');
   }
 
   function testToString() {
