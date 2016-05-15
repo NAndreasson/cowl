@@ -593,7 +593,7 @@ COWLParser::parsePrincipalExpression(const nsAString& principal, const nsACStrin
   ErrorResult aRv;
 
   for (nsString aAnd : ands) {
-    RefPtr<Label> orExp = new Label();
+    RefPtr<Label> orExp = nullptr;
 
     if (ands.Length() > 1) {
       // should be wrapped in ( ), if not fail
@@ -614,7 +614,11 @@ COWLParser::parsePrincipalExpression(const nsAString& principal, const nsACStrin
         prinTok = NS_ConvertUTF8toUTF16(selfUrl);
       }
 
-      orExp = orExp->Or(prinTok, aRv);
+      if (!orExp) {
+        orExp = new Label(prinTok, aRv);
+      } else {
+        orExp = orExp->Or(prinTok, aRv);
+      }
       // did aRV fail?
       if (aRv.Failed()) {
       }
