@@ -432,14 +432,12 @@ Label::_And(mozilla::dom::Label& label, ErrorResult& aRv)
 void
 Label::_Or(DisjunctionSet& role, ErrorResult& aRv)
 {
+  if (IsEmpty())
+    return;
+
   /* Create a new label to which we'll add new roles containing the
    * above role. This eliminates the need to first do the disjunction
    * and then reduce the label to conjunctive normal form. */
-  if (IsEmpty()) {
-    DisjunctionSet emptyDset = DisjunctionSetUtils::ConstructDset();
-    mRoles.AppendElement(emptyDset);
-  }
-
   Label tmpLabel;
 
   for (unsigned i = 0; i < mRoles.Length(); ++i) {
