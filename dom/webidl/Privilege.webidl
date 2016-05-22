@@ -11,17 +11,6 @@ interface Principal;
 interface Privilege {
 
   /**
-   * Returns whether the other privilege equal the other.
-   */
-  boolean equals(Privilege other);
-
-  /**
-   * Returns whether the other privilege is equal to or weaker than
-   * this privilege.
-   */
-  boolean subsumes(Privilege other);
-
-  /**
    * Join privileges.
    */
   Privilege combine(Privilege other);
@@ -29,19 +18,9 @@ interface Privilege {
   [Throws] Privilege delegate(Label label);
 
   /**
-   * Is this privilege empty?
-   */
-  [Pure] readonly attribute boolean isEmpty;
-
-  /**
    * Get a copy of the underlying label.
    */
-  [Throws] readonly attribute Label asLabel;
-
-  /**
-   * Make a new copy of this privilege.
-   */
-  [Throws] Privilege clone();
+  [Throws] Label asLabel();
 
   stringifier;
 };

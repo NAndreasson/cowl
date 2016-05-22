@@ -55,7 +55,7 @@ public:
 
   bool IsEmpty() const;
 
-  already_AddRefed<Label> GetAsLabel(ErrorResult& aRv);
+  already_AddRefed<Label> AsLabel(ErrorResult& aRv);
   already_AddRefed<Privilege> Clone(ErrorResult& aRv);
 
   void Stringify(nsString& retval);

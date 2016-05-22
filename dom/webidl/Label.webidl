@@ -40,21 +40,5 @@ interface Label {
   [Throws] Label _or(DOMString principal);
   [Throws] Label _or(Label other);
 
-  /**
-   * Remove components that the other label subsumes.
-   */
-  void reduce(Label other);
-
-
-  /**
-   * Is this label empty?
-   */
-  [Pure] readonly attribute boolean isEmpty;
-
-  /**
-   * Make a new copy of this label.
-   */
-  [Throws] Label clone();
-
   stringifier;
 };

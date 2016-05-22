@@ -153,7 +153,7 @@ Privilege::IsEmpty() const
 }
 
 already_AddRefed<Label>
-Privilege::GetAsLabel(ErrorResult& aRv)
+Privilege::AsLabel(ErrorResult& aRv)
 {
   return mLabel.Clone(aRv);
 }

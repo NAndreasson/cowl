@@ -237,7 +237,7 @@ COWL::SetPrivilege(const GlobalObject& global, JSContext* cx,
     return;
   }
 
-  RefPtr<Label> newPrivs = priv->GetAsLabel(aRv);
+  RefPtr<Label> newPrivs = priv->AsLabel(aRv);
   if (xpc::cowl::LabelRaiseWillResultInStuckContext(compartment, *currentLabel, newPrivs)) {
     JSErrorResult(cx, aRv, "Sorry cant do that, create a frame");
     return;
