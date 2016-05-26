@@ -10,10 +10,6 @@ interface COWL {
   static void enable();
   static boolean isEnabled();
 
-
-  // Get the compartment principal, stringified
-  static DOMString getPrincipal();
-
   // Current label
   [SetterThrows, GetterThrows] static attribute Label confidentiality;
   [SetterThrows, GetterThrows] static attribute Label integrity;
