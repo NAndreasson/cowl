@@ -1776,13 +1776,10 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
       nsCOMPtr<nsINode> requestingContext = mLoadInfo->LoadingNode();
       nsIDocument* doc = requestingContext->OwnerDoc();
       JSObject* wrapper = doc->GetWrapperPreserveColor();
-      printf("Got a loading node\n");
 
       JSCompartment* comp;
       if (wrapper && (comp = js::GetObjectCompartment(wrapper))) {
-          printf("Got a Compartmetn\n");
           if (xpc::cowl::IsCompartmentConfined(comp)) {
-              printf("Got a confined compartment\n");
 
 
               RefPtr<mozilla::dom::Label> confidentiality = xpc::cowl::GetCompartmentConfidentialityLabel(comp);

@@ -2585,9 +2585,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mozilla::dom::Label* ctxPrivilege = aDocument->GetCtxPrivLabel();
 
       JSCompartment *compartment = js::GetObjectCompartment(newInnerGlobal);
-      printf("Set new document checks\n");
       if (compartment && ctxConfidentiality && ctxIntegrity && ctxPrivilege) {
-        printf("Have a compartment and labels are set?\n");
         // should do in the endfurther down?
         // TODO, an we report things here?
         xpc::cowl::EnableCompartmentConfinement(compartment);

@@ -885,8 +885,6 @@ nsXMLHttpRequest::StaticAssertions()
 
 NS_IMETHODIMP nsXMLHttpRequest::SetResponseType(const nsAString& aResponseType)
 {
-  printf("COWL %s\n", ToNewCString(aResponseType));
-
   nsXMLHttpRequest::ResponseTypeEnum responseType;
   if (aResponseType.IsEmpty()) {
     responseType = XML_HTTP_RESPONSE_TYPE_DEFAULT;
@@ -1096,7 +1094,6 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx,
     GetOrCreateDOMReflector(aCx, mDOMLabeledObject, aResponse);
     /* JS::ExposeValueToActiveJS(mResultJSON); */
     /* aResponse.set(mResultJSON); */
-    printf("Set response not parse... null json\n");
     return;
   }
   default:
@@ -1814,7 +1811,6 @@ nsXMLHttpRequest::StreamReaderFunc(nsIInputStream* in,
 
   bool isLabeledJson = false;
   if (contentType.EqualsLiteral("application/labeled-json")) {
-    printf("Labele JSON was returned!\n");
     // parse as labeled json...
     isLabeledJson = true;
   }
@@ -2218,8 +2214,6 @@ nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
   httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Sec-COWL"), secCOWL);
   if (secCOWL.IsEmpty()) return true;
 
-  printf("Found a header\n");
-
   nsCOMPtr<nsIURI> docURI;
   nsresult rv = httpChannel->GetURI(getter_AddRefs(docURI));
 
@@ -2259,12 +2253,10 @@ nsXMLHttpRequest::DoCOWLCheck(nsIHttpChannel* httpChannel) {
   COWLParser::parseLabeledDataHeader(secCOWL, reqOrigin, &confidentiality, &integrity);
 
   if (!confidentiality) {
-    printf("Conf label null, report error!\n");
     return false; // blocked, malformed
   }
 
   if (!integrity) {
-    printf("Integrity label null, setting to null\n");
     integrity = new mozilla::dom::Label();
   }
 
@@ -2501,9 +2493,6 @@ nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
   nsAutoString intLabelStr;
   intLabel->Stringify(intLabelStr);
 
-  printf("Printing conf label... %s \n", NS_ConvertUTF16toUTF8(confLabelStr).get());
-  printf("Printing int label... %s \n", NS_ConvertUTF16toUTF8(intLabelStr).get());
-
   ErrorResult errRes;
   RefPtr<Label> responseIntLabel  = new Label(NS_ConvertASCIItoUTF16(reqOrigin), errRes);
 
@@ -2513,7 +2502,6 @@ nsXMLHttpRequest::GetLabeledJSON(JSContext* aCx)
   }
 
   if (!responseIntLabel->Subsumes(*intLabel)) {
-    printf("Integrity label does not subsumes\n");
     return false;
   }
 

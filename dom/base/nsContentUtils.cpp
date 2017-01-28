@@ -3043,7 +3043,6 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
 
   nsAutoCString origin;
   aURI->GetPrePath(origin);
-  printf("Check load image from: %s\n", ToNewCString(origin));
 
   // Perform a COWL
   // TODO sometimes docObj will be null? Look into
@@ -3052,7 +3051,6 @@ nsContentUtils::CanLoadImage(nsIURI* aURI, nsISupports* aContext,
     JSCompartment* aCompartment = js::GetObjectCompartment(docObj);
     bool canFlowTo = xpc::cowl::GuardRead(aCompartment, origin);
     if (!canFlowTo) {
-      printf("COULD NOT FLOW TO\n");
       // is this a reasonable status?
       *aImageBlockingStatus = nsIContentPolicy::REJECT_REQUEST;
       return false;

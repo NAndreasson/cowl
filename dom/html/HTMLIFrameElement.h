@@ -102,7 +102,6 @@ public:
   }
   void SetWidth(const nsAString& aWidth, ErrorResult& aError)
   {
-    printf("Setting WIDTH of Iframe\n");
     if (DoCOWLCheck()) {
       SetHTMLAttr(nsGkAtoms::width, aWidth, aError);
     }
@@ -113,7 +112,6 @@ public:
   }
   void SetHeight(const nsAString& aHeight, ErrorResult& aError)
   {
-    printf("Setting HEIGHT of Iframe\n");
     if (DoCOWLCheck()) {
       SetHTMLAttr(nsGkAtoms::height, aHeight, aError);
     }

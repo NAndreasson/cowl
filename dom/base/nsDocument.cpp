@@ -2684,7 +2684,6 @@ nsDocument::ApplySettingsFromCSP(bool aSpeculative)
 nsresult
 nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 {
-  printf("INIT COWL in nsDocument\n");
   // get headers etc
   // look to see if SEC-COWL present!
   nsAutoCString secCOWLHeader;
@@ -2704,7 +2703,6 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
     nsAutoCString prinOrigin;
     rv = principal->GetOrigin(prinOrigin);
 
-    printf("Principal origin %s\n", ToNewCString(prinOrigin));
 
     // construct a label, which will act as privilege and effective integrity
     // label...
@@ -2712,13 +2710,11 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
     // priv label, can be used as effective integrity label as well
     RefPtr<Label> privLabel  = new Label(NS_ConvertASCIItoUTF16(prinOrigin), errRes);
     if (errRes.Failed()) {
-      printf("Err res failed\n");
       errRes.SuppressException();
       // TODO approapriate return?
       return NS_OK;
     }
 
-    printf("SEC-COWL header is set: %s\n", secCOWLHeader.get());
 
     RefPtr<mozilla::dom::Label> confidentiality;
     RefPtr<mozilla::dom::Label> integrity;
@@ -2728,7 +2724,6 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 
     // blocked?
     if (!confidentiality || !integrity || !privilege) {
-      printf("SEC-COWL conf, int or priv is null\n");
 
       if (!docShell) return NS_OK;
 
@@ -2740,7 +2735,6 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
     /* // perform checks, should be the principal? */
     if (!privLabel->Subsumes(*privilege)) {
       // should be blocked
-      printf("Trying to create to strong priv\n");
       /* bool didDisplayLoadError = false; */
       /* docShell->DisplayLoadError(NS_ERROR_COWL_CTX, url, nullptr, aChannel, &didDisplayLoadError); */
       aChannel->Cancel(NS_ERROR_COWL_CTX);
@@ -2753,7 +2747,6 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
       nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
       docShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
       if (!parentAsItem) {
-        printf("Top level context\n");
         topLevel = true;
       }
     }
@@ -2763,24 +2756,20 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
     RefPtr<Label> effectiveLabel = confidentiality->Downgrade(*privilege);
     if (topLevel && !effectiveLabel->IsEmpty()) {
       // stuck context?
-      printf("Would be stuck?\n");
       aChannel->Cancel(NS_ERROR_COWL_CTX);
       return NS_OK;
     }
 
     // Tryiing to create to strong integrity label if fails
     if (!privLabel->Subsumes(*integrity)) {
-      printf("Integrity label does not subsumes?\n");
       aChannel->Cancel(NS_ERROR_COWL_CTX);
       return NS_OK;
     }
 
     JSObject *obj = GetWrapperPreserveColor();
     if (obj) {
-      printf("Is a compartment present?\n");
       // get compartment
       JSCompartment *comp = js::GetObjectCompartment(obj);
-      if (comp) printf("Comp\n");
     }
     // Store parsed labels on the document, compartment seems to not be created yet ..
     // These labels are set on the compartment when compartment is created in
@@ -2791,15 +2780,12 @@ nsDocument::InitCOWL(nsIChannel* aChannel, nsISupports* aContainer)
 
     nsAutoString confStr;
     confidentiality->Stringify(confStr);
-    printf("Serialized conf label %s\n", ToNewUTF8String(confStr));
 
     nsAutoString intStr;
     integrity->Stringify(intStr);
-    printf("Serialized int label %s\n", ToNewUTF8String(intStr));
 
     nsAutoString privStr;
     privilege->Stringify(privStr);
-    printf("Serialized priv label %s\n", ToNewUTF8String(privStr));
   }
 
   return NS_OK;
@@ -9905,7 +9891,6 @@ nsDocument::MaybePreconnect(nsIURI* aOrigURI, mozilla::CORSMode aCORSMode)
 
   nsAutoCString linkOrigin;
   aOrigURI->GetPrePath(linkOrigin);
-  printf("In maybe preconnect %s\n", ToNewCString(linkOrigin));
 
   JSObject *obj = GetWrapperPreserveColor();
   if (obj) {
@@ -9913,7 +9898,6 @@ nsDocument::MaybePreconnect(nsIURI* aOrigURI, mozilla::CORSMode aCORSMode)
     JSCompartment *comp = js::GetObjectCompartment(obj);
     bool canFlowTo = xpc::cowl::GuardRead(comp, linkOrigin);
     if (!canFlowTo) {
-      printf("Preconnect not allowed in this case\n");
       return;
     }
   }

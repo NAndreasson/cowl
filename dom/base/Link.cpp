@@ -52,14 +52,12 @@ Link::TryDNSPrefetch()
 {
   MOZ_ASSERT(mElement->IsInComposedDoc());
 
-  printf("Trying DNS prefetch...\n");
   nsCOMPtr<nsIURI> hrefURI(GetURI());
 
   if (hrefURI && mElement->OwnerDoc()) {
     nsAutoCString linkOrigin;
     hrefURI->GetPrePath(linkOrigin);
 
-    printf("DNS prefetch %s\n", ToNewCString(linkOrigin));
 
     nsIDocument *doc = mElement->OwnerDoc();
     JSObject* wrapper = doc->GetWrapperPreserveColor();
@@ -68,7 +66,6 @@ Link::TryDNSPrefetch()
 
       bool canFlowTo = xpc::cowl::GuardRead(comp, linkOrigin);
       if (!canFlowTo) {
-        printf("DNS prefetching not alloed in this case\n");
         return;
       }
     }

@@ -961,7 +961,6 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
 
   nsAutoString reqUrl;
   DerivedClass()->GetUrl(reqUrl);
-  printf("Fetch origin %s\n", ToNewCString(reqUrl));
 
   ReleaseObject();
 
@@ -1016,12 +1015,10 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
 
   ErrorResult error;
 
-  printf("Mime type %s\n", mMimeType.get());
   // TODO refactor guess it does not have to be utf-8? Seems to be automatically
   // added somewhere
   // COWL check, should not get labeled-json via json or something else
   if (mMimeType.EqualsLiteral("application/labeled-json; charset=utf-8") && mConsumeType != CONSUME_LABELED_JSON) {
-    printf("Sorry, cant do that\n");
     return;
   }
 
@@ -1066,7 +1063,6 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
       break;
     }
     case CONSUME_LABELED_JSON: {
-      printf("Consuming labeled json\n");
       nsString decoded;
       if (NS_SUCCEEDED(FetchUtil::ConsumeText(aResultLength, aResult, decoded))) {
         JS::Rooted<JS::Value> json(cx);
@@ -1078,7 +1074,6 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
 
           nsAutoCString prePath;
           reqOrigin->GetPrePath(prePath);
-          printf("Fetch prepath %s\n", ToNewCString(prePath));
 
           JS::RootedObject resultJSONObj(cx, &json.toObject());
 
