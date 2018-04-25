@@ -13,7 +13,7 @@
 #include "nsIPrincipal.h"
 
 #include "nsLabelService.h"
-#include "StructuredClonetags.h"
+#include "StructuredCloneTags.h"
 
 namespace mozilla {
 namespace dom {
